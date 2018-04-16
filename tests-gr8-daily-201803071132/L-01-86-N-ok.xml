@@ -1,0 +1,132 @@
+<sequence_node size='2'>
+  <function_definition_node public='false' use='false' type='int' name='f'>
+    <args>
+      <sequence_node size='1'>
+        <var_declaration_node public='false' use='false' type='int' name='i'>
+        </var_declaration_node>
+      </sequence_node>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+          <sequence_node size='1'>
+            <var_declaration_node public='false' use='false' type='int' name='n'>
+            </var_declaration_node>
+          </sequence_node>
+        </decls>
+        <instrs>
+          <sequence_node size='2'>
+            <if_else_node>
+              <condition>
+                <eq_node>
+                  <rvalue_node>
+                    <identifier_node>i</identifier_node>
+                  </rvalue_node>
+                  <integer_node>0</integer_node>
+                </eq_node>
+              </condition>
+              <then>
+                <block_node>
+                  <decls>
+                  </decls>
+                  <instrs>
+                    <sequence_node size='1'>
+                      <evaluation_node>
+                        <assignment_node>
+                          <lvalue>
+                            <identifier_node>n</identifier_node>
+                          </lvalue>
+                          <rvalue>
+                            <integer_node>0</integer_node>
+                          <rvalue>
+                        </assignment_node>
+                      </evaluation_node>
+                    </sequence_node>
+                  </instrs>
+                </block_node>
+              </then>
+              <else>
+                <block_node>
+                  <decls>
+                  </decls>
+                  <instrs>
+                    <sequence_node size='2'>
+                      <evaluation_node>
+                        <assignment_node>
+                          <lvalue>
+                            <identifier_node>n</identifier_node>
+                          </lvalue>
+                          <rvalue>
+                            <add_node>
+                              <rvalue_node>
+                                <identifier_node>i</identifier_node>
+                              </rvalue_node>
+                              <call_node name='f'>
+                                <args>
+                                  <sequence_node size='1'>
+                                    <sub_node>
+                                      <rvalue_node>
+                                        <identifier_node>i</identifier_node>
+                                      </rvalue_node>
+                                      <integer_node>1</integer_node>
+                                    </sub_node>
+                                  </sequence_node>
+                                </args>
+                              </call_node>
+                            </add_node>
+                          <rvalue>
+                        </assignment_node>
+                      </evaluation_node>
+                      <return_node>
+                        <return>
+                          <rvalue_node>
+                            <identifier_node>n</identifier_node>
+                          </rvalue_node>
+                        </return>
+                      </return_node>
+                    </sequence_node>
+                  </instrs>
+                </block_node>
+              </else>
+            </if_else_node>
+            <return_node>
+              <return>
+                <integer_node>9</integer_node>
+              </return>
+            </return_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+  <function_definition_node public='true' use='false' type='int' name='covfefe'>
+    <args>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+        </decls>
+        <instrs>
+          <sequence_node size='2'>
+            <print_node newline='true'>
+              <arg>
+                <call_node name='f'>
+                  <args>
+                    <sequence_node size='1'>
+                      <integer_node>3</integer_node>
+                    </sequence_node>
+                  </args>
+                </call_node>
+              </arg>
+            </print_node>
+            <return_node>
+              <return>
+                <integer_node>0</integer_node>
+              </return>
+            </return_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+</sequence_node>

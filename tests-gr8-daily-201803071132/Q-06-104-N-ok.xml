@@ -1,0 +1,75 @@
+<sequence_node size='2'>
+  <function_definition_node public='true' use='false' type='real' name='main'>
+    <args>
+      <sequence_node size='1'>
+        <var_declaration_node public='false' use='false' type='real*' name='p'>
+        </var_declaration_node>
+      </sequence_node>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+        </decls>
+        <instrs>
+          <sequence_node size='1'>
+            <return_node>
+              <return>
+                <rvalue_node>
+                  <cell_node>
+                    <baseptr>
+                      <rvalue_node>
+                        <identifier_node>p</identifier_node>
+                      </rvalue_node>
+                    </baseptr>
+                    <cell>
+                      <integer_node>0</integer_node>
+                    </cell>
+                  </cell_node>
+                </rvalue_node>
+              </return>
+            </return_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+  <function_definition_node public='true' use='false' type='int' name='covfefe'>
+    <args>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+          <sequence_node size='1'>
+            <var_declaration_node public='false' use='false' type='real' name='r'>
+              <init>
+                <double_node>61</double_node>
+              </init>
+            </var_declaration_node>
+          </sequence_node>
+        </decls>
+        <instrs>
+          <sequence_node size='2'>
+            <print_node newline='true'>
+              <arg>
+                <call_node name='main'>
+                  <args>
+                    <sequence_node size='1'>
+                      <address_of_node>
+                        <identifier_node>r</identifier_node>
+                      </address_of_node>
+                    </sequence_node>
+                  </args>
+                </call_node>
+              </arg>
+            </print_node>
+            <return_node>
+              <return>
+                <integer_node>0</integer_node>
+              </return>
+            </return_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+</sequence_node>

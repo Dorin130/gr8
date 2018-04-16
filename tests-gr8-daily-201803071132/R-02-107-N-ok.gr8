@@ -1,0 +1,5 @@
+define small function f as
+  return z
+define small function f as
+  assign 7 to z
+  return z

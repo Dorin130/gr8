@@ -1,0 +1,59 @@
+<sequence_node size='3'>
+  <function_declaration_node public='true' use='false' type='void' name='f'>
+    <args>
+    </args>
+  </function_declaration_node>
+  <function_definition_node public='true' use='false' type='void' name='f'>
+    <args>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+          <sequence_node size='1'>
+            <var_declaration_node public='false' use='false' type='int' name='x'>
+              <init>
+                <integer_node>3</integer_node>
+              </init>
+            </var_declaration_node>
+          </sequence_node>
+        </decls>
+        <instrs>
+          <sequence_node size='1'>
+            <print_node newline='false'>
+              <arg>
+                <rvalue_node>
+                  <identifier_node>x</identifier_node>
+                </rvalue_node>
+              </arg>
+            </print_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+  <function_definition_node public='true' use='false' type='int' name='covfefe'>
+    <args>
+    </args>
+    <body>
+      <block_node>
+        <decls>
+        </decls>
+        <instrs>
+          <sequence_node size='2'>
+            <evaluation_node>
+              <call_node name='f'>
+                <args>
+                </args>
+              </call_node>
+            </evaluation_node>
+            <return_node>
+              <return>
+                <integer_node>0</integer_node>
+              </return>
+            </return_node>
+          </sequence_node>
+        </instrs>
+      </block_node>
+    </body>
+  </function_definition_node>
+</sequence_node>
