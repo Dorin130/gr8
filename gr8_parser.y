@@ -173,6 +173,7 @@ instr
     | tAGAIN tINTEGER ';'                                           { $$ = new gr8::again_node(LINE, $2);        }
     | tAGAIN ';'                                                    { $$ = new gr8::again_node(LINE, 1);         }
     | tRETURN expr ';'                                              { $$ = new gr8::return_node(LINE, $2);       }
+    | tRETURN ';'                                                   { $$ = new gr8::return_node(LINE, nullptr);  }
     | tIF ifconditions                                              { $$ = $2;   }
     | tSWEEPING lval tFROM expr tTO expr tDO block                  { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, new cdk::integer_node(LINE, 1), $8); }
     | tSWEEPING lval tFROM expr tTO expr tBY expr tDO block         { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, $8, $10); }

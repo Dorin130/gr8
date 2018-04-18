@@ -10,7 +10,7 @@
           <sequence_node size='2'>
             <print_node newline='true'>
               <arg>
-                <string_node>1234567</string_node>
+                <string_node>string</string_node>
               </arg>
             </print_node>
             <return_node>

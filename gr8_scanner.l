@@ -34,7 +34,7 @@ INT10							[1-9]{DIGI}*|0
 INT7							0{HEPT}+
 
 %%
-                                { set_debug(1); if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
+                                { if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
 
 "small"							return tSMALL;
 "huge"							return tHUGE;
