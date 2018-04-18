@@ -28,13 +28,15 @@ SPACE      						[ \t]+
 
 DIGI							[0-9]
 EXPONENT          				[eE][-+]?{DIGI}+
-REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPONENT}?
 HEPT             				[0-6]
-INT10							[1-9]{DIGI}*|0
 INT7							0{HEPT}+
+INT10							[1-9]{DIGI}*|0
+REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPONENT}?
 
 %%
                                 { if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
+
+        /* Regular tokens */
 
 "small"							return tSMALL;
 "huge"							return tHUGE;
@@ -85,15 +87,12 @@ INT7							0{HEPT}+
 "by"							return tBY;
 "null"                          return tNULL;
 
-"<<"							yy_push_state(X_COMMENT);
-<X_COMMENT>"<<"					yy_push_state(X_COMMENT);
-<X_COMMENT>">>"					yy_pop_state();
-<X_COMMENT>.|\n 				; /* ignore comments */
+{SYMBOL}						{ return *yytext; }
 
-"!!".*$                 		; /* ignore comments */
+
+        /* Special tokens treatment section */
 
 {IDENTIFIER}					{ yylval.s = new std::string(yytext); return tIDENTIFIER; }
-{SYMBOL}						{ return *yytext; }
 {REAL}               		 	{ yylval.d = strtod(yytext, nullptr); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tREAL; }
 {INT7}			  		 		{ yylval.i = strtol(yytext, nullptr, 7); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER; }
 {INT10}               			{ yylval.i = strtol(yytext, nullptr, 10); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER;}
@@ -115,12 +114,29 @@ INT7							0{HEPT}+
 <X_ESCAPE>.						yyerror("Unknown character in string!");
 
 
+        /* Comment treatment section */
+
+"<<"							yy_push_state(X_COMMENT);
+<X_COMMENT>"<<"					yy_push_state(X_COMMENT);
+<X_COMMENT>">>"					yy_pop_state();
+<X_COMMENT>.|\n 				; /* ignore comments */
+
+"!!".*$                 		; /* ignore comments */
+
+
+        /* Whitespace and continuation section */
+
 "..."\n                         { ; /* line continuation marker */}
 {SPACE}* 		              	{ ; /* ignore whitespace that is not in the start of the line*/}
+
+        /* Indentation trigger section */
+
 \n                              { BEGIN(X_CHECK_INDENT); currentIndent=0;  }   //end of logic line
 <INITIAL><<EOF>>                { BEGIN(X_CHECK_INDENT); currentIndent=0;  }   //end of logic line
 
-        /* INDENTATION TREATMENT SECTION */
+
+        /* Indentation treatment section */
+
 <X_CHECK_INDENT>"!!".*$         { ; /* ignore */}
 <X_CHECK_INDENT><<              { yy_push_state(X_COMMENT); }
 <X_CHECK_INDENT>[ ]             { currentIndent++; }
@@ -144,7 +160,7 @@ INT7							0{HEPT}+
                                     return 0;
                                   }
                                 }
-                                
+
 <X_CHECK_INDENT>.               { yyless(0);   //logic line start
                                   if(indents.size()==0)                           //1st level indentation
                                     indents.push_back(currentIndent);
@@ -167,8 +183,8 @@ INT7							0{HEPT}+
                                     return '}';
                                   }
                                 }
-        /* END OF INDENTATION TREATMENT SECTION */
 
+        /* Everything else (unexpected) */
 
 .                      		 	{ yyerror("Unknown character");}
 
