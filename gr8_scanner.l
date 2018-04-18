@@ -29,12 +29,13 @@ SPACE      						[ \t]+
 DIGI							[0-9]
 EXPONENT          				[eE][-+]?{DIGI}+
 HEPT             				[0-6]
+NOTZERO                         0[0]+
 INT7							0{HEPT}+
 INT10							[1-9]{DIGI}*|0
 REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPONENT}?
 
 %%
-                                {/* set_debug(1);*/ if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
+                                { /*set_debug(1);*/ if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
 
         /* Regular tokens */
 
@@ -94,6 +95,7 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 
 {IDENTIFIER}					{ yylval.s = new std::string(yytext); return tIDENTIFIER; }
 {REAL}               		 	{ yylval.d = strtod(yytext, nullptr); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tREAL; }
+{NOTZERO}                       { yyerror("Not a valid representation of zero"); }
 {INT7}			  		 		{ yylval.i = strtol(yytext, nullptr, 7); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER; }
 {INT10}               			{ yylval.i = strtol(yytext, nullptr, 10); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER;}
 

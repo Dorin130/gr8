@@ -7,12 +7,26 @@
         <decls>
         </decls>
         <instrs>
-          <sequence_node size='2'>
+          <sequence_node size='3'>
             <print_node newline='true'>
               <arg>
                 <string_node>string</string_node>
               </arg>
             </print_node>
+            <evaluation_node>
+              <rvalue_node>
+                <cell_node>
+                  <baseptr>
+                    <address_of_node>
+                      <identifier_node>a</identifier_node>
+                    </address_of_node>
+                  </baseptr>
+                  <cell>
+                    <integer_node>1</integer_node>
+                  </cell>
+                </cell_node>
+              </rvalue_node>
+            </evaluation_node>
             <return_node>
               <return>
                 <integer_node>0</integer_node>
