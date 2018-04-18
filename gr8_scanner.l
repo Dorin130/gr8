@@ -14,28 +14,13 @@
 bool firstTime = true;
 bool closeLogicLine = false;
 int currentIndent = 0;
-std::stack<int> indents;
-
-int dealWithIndent(int indentLvl) {
-    if(indents.size()==0)                        //1st level indentation
-        indents.push(indentLvl); 
-    if(indentLvl == indents.top()) {             //same indentation
-        return ';';
-    } else if(indentLvl > indents.top()) {       //more indentation
-        indents.push(indentLvl);
-        return '{';
-    } else {                                     //dedent
-        indents.pop();
-        if(indentLvl > indents.top()) return -1;
-        else return '}';
-    }
-}
+std::vector<int> indents;
 
 // don't change this
 #define yyerror LexerError
 
 %}
-%x X_STRING X_COMMENT X_ESCAPE X_IGNORE X_NEWLINE X_CHECK_INDENT
+%x X_STRING X_COMMENT X_ESCAPE X_NEWLINE X_CHECK_INDENT
 
 IDENTIFIER 						[a-zA-Z][0-9a-zA-Z-]*
 SYMBOL							[()?,]
@@ -115,14 +100,10 @@ INT7							0{HEPT}+
 
 
 \"                     		  	{ yy_push_state(X_STRING); yylval.s = new std::string("");}
-<X_STRING,X_IGNORE>\"   		{ yy_pop_state (); return tSTRING;}
+<X_STRING>\"            		{ yy_pop_state (); return tSTRING;}
 <X_STRING>~			   		  	{ yy_push_state(X_ESCAPE);}
 <X_STRING>\n|\0			   		{ yyerror("Invalid character in string (NUL, LF)"); } /* ask teacher if necessary; separate error messages if so */
 <X_STRING>.         		  	{ *yylval.s += yytext; }
-
-<X_ESCAPE>0		     			{ yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
-<X_ESCAPE>00		   			{ yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
-<X_ESCAPE>000		   			{ yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
 
 <X_ESCAPE>n						{ *yylval.s += "\n"; yy_pop_state();}
 <X_ESCAPE>r		        		{ *yylval.s += "\r"; yy_pop_state();}
@@ -132,10 +113,6 @@ INT7							0{HEPT}+
 
 <X_ESCAPE>{HEPT}{HEPT}?{HEPT}? 	{ if(strtol(yytext, nullptr, 7) < 256) *yylval.s += std::string(1, strtol(yytext, nullptr, 7)); else yyerror("Char not 8-bit!");  yy_pop_state();}
 <X_ESCAPE>.						yyerror("Unknown character in string!");
-
-<X_IGNORE>~\"        			{ ; /* ignore */}
-<X_IGNORE>~~        			{ ; /* ignore */}
-<X_IGNORE>.|\n 	     			{ ; /* ignore */}
 
 
 "..."\n                         { ; /* line continuation marker */}
@@ -153,48 +130,41 @@ INT7							0{HEPT}+
 <X_CHECK_INDENT><<EOF>>         { currentIndent=0;
                                   if(closeLogicLine) {
                                     closeLogicLine = false;
-                                    std::cout << ';';
                                     return ';';
                                   }
-                                  switch(dealWithIndent(currentIndent)) {
-                                    case '}':
-                                        std::cout << '}';
-                                        return '}';
-                                    default:
-                                        return 0;
-                                        break;
+                                  else if(indents.size()==0)                           //1st level indentation
+                                    indents.push_back(currentIndent);
+                                  else if(currentIndent < indents.back()) {
+                                    indents.pop_back();
+                                    if(currentIndent > indents.back()) {
+                                      yyerror(std::string("Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
+                                    }
+                                    return '}';
+                                  } else {
+                                    return 0;
                                   }
                                 }
                                 
 <X_CHECK_INDENT>.               { yyless(0);   //logic line start
-                                  int c = dealWithIndent(currentIndent);
-                                  switch(c) {
-                                    case '{':
-                                        closeLogicLine = true;
-                                        BEGIN(INITIAL);
-                                        std::cout << '{';
-                                        return '{';
-                                    case '}':
-                                        if(closeLogicLine) {
-                                            closeLogicLine = false;
-                                            std::cout << ';';
-                                            return ';';
-                                        }
-                                        std::cout << '}';
-                                        return '}';
-                                    case ';':
-                                        if(closeLogicLine) {
-                                            closeLogicLine = false;
-                                            std::cout << ';';
-                                            return ';';
-                                        }
-                                        closeLogicLine = true;
-                                        BEGIN(INITIAL);
-                                        break;
-                                    case -1:
-                                        std::string error = "Unexpected indent: expected '" + std::to_string(indents.top()) + "' spaces";
-                                        yyerror(error.c_str());
-                                        //BEGIN(INITIAL);
+                                  if(indents.size()==0)                           //1st level indentation
+                                    indents.push_back(currentIndent);
+                                  if(currentIndent > indents.back()) {            //more indentation
+                                    indents.push_back(currentIndent);
+                                    closeLogicLine=true;
+                                    BEGIN(INITIAL);
+                                    return '{';
+                                  } else if(closeLogicLine) {
+                                    closeLogicLine = false;
+                                    return ';';
+                                  } else if(currentIndent == indents.back()) {
+                                    closeLogicLine=true;
+                                    BEGIN(INITIAL);
+                                  } else if(currentIndent < indents.back()) {
+                                    indents.pop_back();
+                                    if(currentIndent > indents.back()) {
+                                      yyerror(std::string("Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
+                                    }
+                                    return '}';
                                   }
                                 }
         /* END OF INDENTATION TREATMENT SECTION */

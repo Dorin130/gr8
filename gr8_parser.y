@@ -143,10 +143,10 @@ fakenews
     ;
 
 block 
-    : '{' '}'                                                   { $$ = new gr8::block_node(LINE, new cdk::sequence_node(LINE), new cdk::sequence_node(LINE));} /* NIL node? */
-    | '{' localvars '}'                                         { $$ = new gr8::block_node(LINE, $2, new cdk::sequence_node(LINE));}
-    | '{' instrs '}'                                            { $$ = new gr8::block_node(LINE, new cdk::sequence_node(LINE), $2);}
-    | '{' localvars instrs '}'                                  { $$ = new gr8::block_node(LINE, $2, $3);}
+    : '{' '}'                                                       { $$ = new gr8::block_node(LINE, new cdk::sequence_node(LINE), new cdk::sequence_node(LINE));} /* NIL node? */
+    | '{' localvars '}'                                             { $$ = new gr8::block_node(LINE, $2, new cdk::sequence_node(LINE));}
+    | '{' instrs '}'                                                { $$ = new gr8::block_node(LINE, new cdk::sequence_node(LINE), $2);}
+    | '{' localvars instrs '}'                                      { $$ = new gr8::block_node(LINE, $2, $3);}
     ;
     
 localvars
@@ -202,7 +202,7 @@ exprs
 literal
     : tINTEGER                                                      { $$ = new cdk::integer_node(LINE, $1); }
     | tREAL                                                         { $$ = new cdk::double_node(LINE, $1);  }
-    | string                                                        { $$ = new cdk::string_node(LINE, $1);  }
+    | string                                                        { $$ = new cdk::string_node(LINE, new std::string($1->c_str())); delete $1; }
     | tNULL                                                         { $$ = new gr8::null_node(LINE);        }
     ;
 
