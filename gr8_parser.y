@@ -27,7 +27,7 @@
 %token <s> tSTRING tIDENTIFIER
 %token tSMALL tHUGE tNEWS tFAKE tINITIALLY tUSE tPUBLIC tDEFINE tPROCEDURE tFUNCTION tON tAS tDO tUSES tFOR tRETURN tPLUS tMINUS tTIMES tOVER tMODULUS tNOT tAND tOR tASSIGN tTO tCELL tAT tABOVE tBELOW tEQUALS tINPUT tOBJECTS tIF tTHEN tELSIF tELSE tSTOP tAGAIN tPOST tTWEET tSWEEPING tFROM tBY tNULL 
 
-%nonassoc xLVAL
+%nonassoc LVAL_PREC
 %nonassoc '?'
 
 %nonassoc tOBJECTS
@@ -203,13 +203,13 @@ exprs
 literal
     : tINTEGER                                                      { $$ = new cdk::integer_node(LINE, $1); }
     | tREAL                                                         { $$ = new cdk::double_node(LINE, $1);  }
-    | string                                                        { $$ = new cdk::string_node(LINE, new std::string($1->c_str())); delete $1; }
+    | string                                                        { $$ = new cdk::string_node(LINE, $1); }
     | tNULL                                                         { $$ = new gr8::null_node(LINE);        }
     ;
 
 string
-    : string tSTRING                                                { $$ = new std::string(*$1 + *$2); delete $1; delete $2;}
-    | tSTRING                                                       { $$ = $1;}
+    : string tSTRING                                                { $$ = new std::string(*$1 + $2->c_str()); delete $1; delete $2;}
+    | tSTRING                                                       { $$ = new std::string($1->c_str()); delete $1;}
     ;     
 
 expr   
@@ -231,27 +231,9 @@ expr
     | expr tOR expr                                                 { $$ = new cdk::or_node(LINE, $1, $3);         }
     | expr tAND expr                                                { $$ = new cdk::and_node(LINE, $1, $3);        }
     | lval '?'                                                      { $$ = new gr8::address_of_node(LINE, $1);     }
-    | lval %prec xLVAL                                              { $$ = new cdk::rvalue_node(LINE, $1);         }
+    | lval %prec LVAL_PREC                                          { $$ = new cdk::rvalue_node(LINE, $1);         }
     | expr tOBJECTS                                                 { $$ = new gr8::alloc_node(LINE, $1);          }
     | '(' expr ')'                                                  { $$ = $2;                                     }
     ;
 
 %%
-
-/*
-
-fakesmall
-    : tSMALL fakesmall                                              { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = $2;                                      }
-    | tSMALL tFAKE                                                  { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = new basic_type(4, basic_type::TYPE_INT); }
-    ;
-    
-fakehuge
-    : tHUGE fakehuge                                                { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = $2;                                         }
-    | tHUGE tFAKE                                                   { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = new basic_type(8, basic_type::TYPE_DOUBLE); }
-    ;
-
-fakenews
-    : tFAKE fakenews                                                { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = $2;                                         }
-    | tFAKE tNEWS                                                   { $$ = new basic_type(4, basic_type::TYPE_POINTER); $$->_subtype = new basic_type(4, basic_type::TYPE_STRING); }
-    ;
-*/

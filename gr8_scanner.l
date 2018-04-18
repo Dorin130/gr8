@@ -34,7 +34,7 @@ INT10							[1-9]{DIGI}*|0
 REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPONENT}?
 
 %%
-                                { if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
+                                {/* set_debug(1);*/ if(firstTime) { firstTime = false; BEGIN(X_CHECK_INDENT) ; } }
 
         /* Regular tokens */
 
@@ -110,7 +110,7 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 <X_ESCAPE>\"         			{ *yylval.s += "\""; yy_pop_state();}
 <X_ESCAPE>~						{ *yylval.s += "~" ; yy_pop_state();}
 
-<X_ESCAPE>{HEPT}{HEPT}?{HEPT}? 	{ if(strtol(yytext, nullptr, 7) < 256) *yylval.s += std::string(1, strtol(yytext, nullptr, 7)); else yyerror("Char not 8-bit!");  yy_pop_state();}
+<X_ESCAPE>{HEPT}{HEPT}?{HEPT}? 	{ if(strtol(yytext, nullptr, 7) < 256) *yylval.s += std::string(1, strtol(yytext, nullptr, 7)); else yyerror(std::string(std::to_string(yylineno) + ":Char not 8-bit!").c_str());  yy_pop_state();}
 <X_ESCAPE>.						yyerror("Unknown character in string!");
 
 
@@ -143,27 +143,28 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 <X_CHECK_INDENT>[\t]            { currentIndent += 8; currentIndent -= currentIndent%8; }
 <X_CHECK_INDENT>\n              { currentIndent=0; }
 
-<X_CHECK_INDENT><<EOF>>         { currentIndent=0;
+<X_CHECK_INDENT><<EOF>>         { if(indents.size()==0) return 0;   //if an empty file
+                                  currentIndent=indents[0];         //baseline indentation
                                   if(closeLogicLine) {
                                     closeLogicLine = false;
                                     return ';';
                                   }
-                                  else if(indents.size()==0)                           //1st level indentation
-                                    indents.push_back(currentIndent);
                                   else if(currentIndent < indents.back()) {
                                     indents.pop_back();
                                     if(currentIndent > indents.back()) {
-                                      yyerror(std::string("Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
+                                      yyerror(std::string(std::to_string(yylineno) + ": Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
                                     }
                                     return '}';
-                                  } else {
+                                  } else if(currentIndent == indents.back()) {
                                     return 0;
                                   }
                                 }
 
 <X_CHECK_INDENT>.               { yyless(0);   //logic line start
-                                  if(indents.size()==0)                           //1st level indentation
+                                  if(indents.size()==0) // first level of indentation
                                     indents.push_back(currentIndent);
+                                  if(currentIndent < indents.at(0))
+                                    yyerror(std::string(std::to_string(yylineno) + ": Unexpected indent: expected at least '" + std::to_string(indents.back()) + "' spaces").c_str());
                                   if(currentIndent > indents.back()) {            //more indentation
                                     indents.push_back(currentIndent);
                                     closeLogicLine=true;
@@ -178,7 +179,7 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
                                   } else if(currentIndent < indents.back()) {
                                     indents.pop_back();
                                     if(currentIndent > indents.back()) {
-                                      yyerror(std::string("Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
+                                      yyerror(std::string(std::to_string(yylineno) + ": Unexpected indent: expected '" + std::to_string(indents.back()) + "' spaces").c_str());
                                     }
                                     return '}';
                                   }
