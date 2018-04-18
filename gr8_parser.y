@@ -30,6 +30,8 @@
 %nonassoc LVAL_PREC
 %nonassoc '?'
 
+%nonassoc tOBJECTS
+
 %left tOR
 %left tAND
 %nonassoc tNOT
@@ -78,12 +80,12 @@ function
     |                          tPROCEDURE tIDENTIFIER funcparamdecl ';'         { $$ = new gr8::function_declaration_node(LINE, gr8::function_declaration_node::QUALIFIER_NONE  , new basic_type(0, basic_type::TYPE_VOID), $2, $3); }
     |           tPUBLIC        tPROCEDURE tIDENTIFIER funcparamdecl ';'         { $$ = new gr8::function_declaration_node(LINE, gr8::function_declaration_node::QUALIFIER_PUBLIC, new basic_type(0, basic_type::TYPE_VOID), $3, $4); }
     |           tUSE           tPROCEDURE tIDENTIFIER funcparamdecl ';'         { $$ = new gr8::function_declaration_node(LINE, gr8::function_declaration_node::QUALIFIER_USE   , new basic_type(0, basic_type::TYPE_VOID), $3, $4); }
-    | tDEFINE             type tFUNCTION  tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_NONE  , $2, $4, $5, $7); }
-    | tDEFINE   tPUBLIC   type tFUNCTION  tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_PUBLIC, $3, $5, $6, $8); }
-    | tDEFINE   tUSE      type tFUNCTION  tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_USE   , $3, $5, $6, $8); }
-    | tDEFINE                  tPROCEDURE tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_NONE  , new basic_type(0, basic_type::TYPE_VOID), $3, $4, $6 ); }
-    | tDEFINE   tPUBLIC        tPROCEDURE tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_PUBLIC, new basic_type(0, basic_type::TYPE_VOID), $4, $5, $7 ); }
-    | tDEFINE   tUSE           tPROCEDURE tIDENTIFIER funcparamdef tAS block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_USE   , new basic_type(0, basic_type::TYPE_VOID), $4, $5, $7 ); }
+    | tDEFINE             type tFUNCTION  tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_NONE  , $2, $4, $5, $8); }
+    | tDEFINE   tPUBLIC   type tFUNCTION  tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_PUBLIC, $3, $5, $6, $9); }
+    | tDEFINE   tUSE      type tFUNCTION  tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_USE   , $3, $5, $6, $9); }
+    | tDEFINE                  tPROCEDURE tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_NONE  , new basic_type(0, basic_type::TYPE_VOID), $3, $4, $7 ); }
+    | tDEFINE   tPUBLIC        tPROCEDURE tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_PUBLIC, new basic_type(0, basic_type::TYPE_VOID), $4, $5, $8 ); }
+    | tDEFINE   tUSE           tPROCEDURE tIDENTIFIER funcparamdef tAS ';' block    { $$ = new gr8::function_definition_node(LINE, gr8::function_definition_node::QUALIFIER_USE   , new basic_type(0, basic_type::TYPE_VOID), $4, $5, $8 ); }
     ;
     
 funcparamdecl
@@ -175,14 +177,15 @@ instr
     | tRETURN ';'                                                   { $$ = new gr8::return_node(LINE, nullptr);    }
     | tRETURN expr ';'                                              { $$ = new gr8::return_node(LINE, $2);         }
     | tIF ifconditions                                              { $$ = $2;   }
-    | tSWEEPING lval tFROM expr tTO expr tDO block                  { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, new cdk::integer_node(LINE, 1), $8); }
-    | tSWEEPING lval tFROM expr tTO expr tBY expr tDO block         { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, $8, $10); }
+    | tSWEEPING lval tFROM expr tTO expr tDO ';' block                  { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, new cdk::integer_node(LINE, 1), $9); }
+    | tSWEEPING lval tFROM expr tTO expr tBY expr tDO ';' block         { $$ = new gr8::sweeping_node(LINE, $2, $4, $6, $8, $11); }
+    | block                                                         { $$ = $1; }
     ;
 
 ifconditions
-    : expr tTHEN block                                              { $$ = new gr8::if_node(LINE, $1, $3);          }
-    | expr tTHEN block tELSE block                                  { $$ = new gr8::if_else_node(LINE, $1, $3, $5); }
-    | expr tTHEN block tELSIF ifconditions                          { $$ = new gr8::if_else_node(LINE, $1, $3, $5); }
+    : expr tTHEN ';' block                                              { $$ = new gr8::if_node(LINE, $1, $4);          }
+    | expr tTHEN ';' block tELSE ';' block                                  { $$ = new gr8::if_else_node(LINE, $1, $4, $7); }
+    | expr tTHEN ';' block tELSIF ifconditions                          { $$ = new gr8::if_else_node(LINE, $1, $4, $6); }
     ;
 
 lval

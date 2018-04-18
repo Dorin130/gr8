@@ -1,5 +1,10 @@
+	define public small function covfefe as
+	   post "s"
+	     post "s"
+	   post "s"
 define public small function covfefe as
-	post "string"
-	cell 1 at a?
-	return 0
+   post "s"
+     post "s"
+   post "s"
+
 
