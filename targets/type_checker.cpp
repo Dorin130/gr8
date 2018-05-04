@@ -8,8 +8,9 @@
 
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lvl) {
-  // EMPTY
+void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lvl) { //Might be unnecessary (not an expression)
+  for (auto i : node->nodes())
+      i->accept(this);
 }
 
 //---------------------------------------------------------------------------
@@ -47,9 +48,6 @@ void gr8::type_checker::processUnaryExpression(cdk::unary_expression_node * cons
     node->type(new basic_type(8, basic_type::TYPE_DOUBLE));
   else throw std::string(
     "wrong type in argument of unary expression: expected 'small' or 'huge' but was '" + typeToString(t) + "'");
-
-  // in Simple, expressions were always int
-  node->type(new basic_type(4, basic_type::TYPE_INT));
 }
 
 void gr8::type_checker::do_neg_node(cdk::neg_node * const node, int lvl) {
@@ -58,9 +56,15 @@ void gr8::type_checker::do_neg_node(cdk::neg_node * const node, int lvl) {
 void gr8::type_checker::do_identity_node(gr8::identity_node *const node, int lvl) {
   processUnaryExpression(node, lvl);
 }
-
 void gr8::type_checker::do_not_node(cdk::not_node * const node, int lvl) {
   ASSERT_UNSPEC;
+
+  node->argument()->accept(this, lvl + 2);
+  basic_type *t = node->argument()->type();
+  if (isNumber(t) || isString(t) || isPointer(t))
+    node->type(new basic_type(4, basic_type::TYPE_INT));
+  else throw std::string(
+    "wrong type in argument of not expression: expected 'small', 'huge', 'fake' or 'news' but was '" + typeToString(t) + "'"); //unreachable in theory
 }
 
 //---------------------------------------------------------------------------
@@ -73,12 +77,12 @@ void gr8::type_checker::processBinaryExpression(cdk::binary_expression_node * co
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
-  type_ranking_unspec(t1, t2);
+  type_unspec_converter(t1, t2);
 
   if(!isNumber(t1) && !isPointer(t1)) throw std::string(
-    "wrong type in left argument of binary expression: expected 'small' or 'huge' or 'fake' but was " + typeToString(t1));
+    "wrong type in left argument of binary expression: expected 'small' or 'huge' or 'fake' but was '" + typeToString(t1) + "'");
   if(!isNumber(t2) && !isPointer(t2)) throw std::string(
-    "wrong type in right argument of binary expression: expected 'small' or 'huge' or 'fake' but was " + typeToString(t2));
+    "wrong type in right argument of binary expression: expected 'small' or 'huge' or 'fake' but was '" + typeToString(t2) + "'");
 
 }
 
@@ -92,9 +96,9 @@ void gr8::type_checker::processMultiplicativeExpression(cdk::binary_expression_n
   } else if (isInt(t1) && isInt(t2)) {
     node->type(type_deep_copy(t1));
   } else if (!isNumber(t1)) throw std::string(
-    "wrong type in left argument of multiplicative expression: expected 'small' or 'huge' but was " + typeToString(t1));
+    "wrong type in left argument of multiplicative expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
   else throw std::string(
-    "wrong type in right argument of multiplicative expression: expected 'small' or 'huge' but was " + typeToString(t2));
+    "wrong type in right argument of multiplicative expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
 }
 
 void gr8::type_checker::do_mul_node(cdk::mul_node * const node, int lvl) {  //COMPLETE
@@ -112,9 +116,9 @@ void gr8::type_checker::do_mod_node(cdk::mod_node * const node, int lvl) {  //CO
   if (isInt(t1) && isInt(t2)) {
     node->type(type_deep_copy(t1));
   } else if (!isInt(t1)) throw std::string(
-    "wrong type in left argument of modulus expression: expected 'small' but was " + typeToString(t1));
+    "wrong type in left argument of modulus expression: expected 'small' but was '" + typeToString(t1) + "'");
   else throw std::string(
-    "wrong type in right argument of modulus expression: expected 'small' but was " + typeToString(t2));
+    "wrong type in right argument of modulus expression: expected 'small' but was '" + typeToString(t2) + "'");
 }
 
 void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) { //COMPLETE
@@ -154,13 +158,16 @@ void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COM
       else throw std::string(
         "subtractive expression: cannot subtract fakes: '" + typeToString(t1) + "' and '" + typeToString(t1)) + "'";
   } else if (isPointer(t1)) throw std::string(
-    "wrong type in right argument of subtractive expression: expected " + typeToString(t1) + " but was " + typeToString(t2));
+    "wrong type in right argument of subtractive expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
   else throw std::string(
-    "wrong type in left argument of subtractive expression: expected " + typeToString(t2) + " but was " + typeToString(t1));
+    "wrong type in left argument of subtractive expression: expected '" + typeToString(t2) + "' but was '" + typeToString(t1) + "'");
 }
 
 void gr8::type_checker::do_eq_node(cdk::eq_node * const node, int lvl) { //COMPLETE
   processBinaryExpression(node, lvl);
+
+  if(node->left()->type()->name() != node->left()->type()->name()) throw std::string( //check if both types have to be equal
+    "wrong type in right argument of equality expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
 
   node->type(new basic_type(4, basic_type::TYPE_INT)); //INT ~ BOOLEAN
 }
@@ -173,9 +180,9 @@ void gr8::type_checker::processBinaryLogicExpression(cdk::binary_expression_node
   if(bothDoubleImplicitly(t1, t2) || (isInt(t1) && isInt(t2))) {
       node->type(new basic_type(4, basic_type::TYPE_INT));
   } else if (!isNumber(t1)) throw std::string(
-      "wrong type in left argument of binary expression: expected 'small' or 'huge' but was " + typeToString(t1));
+      "wrong type in left argument of binary expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
   else throw std::string(
-      "wrong type in right argument of binary logic expression: expected 'small' or 'huge' but was " + typeToString(t2));
+      "wrong type in right argument of binary logic expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
 }
 
 void gr8::type_checker::do_gt_node(cdk::gt_node * const node, int lvl) { //COMPLETE
@@ -193,7 +200,7 @@ void gr8::type_checker::do_or_node(cdk::or_node * const node, int lvl) { //COMPL
 
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_identifier_node(cdk::identifier_node * const node, int lvl) {
+void gr8::type_checker::do_identifier_node(cdk::identifier_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_UNSPEC;
   const std::string &id = node->name();
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
@@ -205,7 +212,7 @@ void gr8::type_checker::do_identifier_node(cdk::identifier_node * const node, in
   }
 }
 
-void gr8::type_checker::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
+void gr8::type_checker::do_rvalue_node(cdk::rvalue_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_UNSPEC;
   try {
     node->lvalue()->accept(this, lvl);
@@ -215,27 +222,21 @@ void gr8::type_checker::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
   }
 }
 
-void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, int lvl) {
+void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_UNSPEC;
 
-  try {
-    node->lvalue()->accept(this, lvl);
-  } catch (const std::string &id) {
-    std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(new basic_type(4, basic_type::TYPE_INT), id, 0);
-    _symtab.insert(id, symbol);
-    _parent->set_new_symbol(symbol);  // advise parent that a symbol has been inserted
-    node->lvalue()->accept(this, lvl);  //DAVID: bah!
-  }
-
-  if (node->lvalue()->type()->name() != basic_type::TYPE_INT) throw std::string(
-      "wrong type in left argument of assignment expression");
-
+  node->lvalue()->accept(this, lvl + 2);
   node->rvalue()->accept(this, lvl + 2);
-  if (node->rvalue()->type()->name() != basic_type::TYPE_INT) throw std::string(
-      "wrong type in right argument of assignment expression");
 
-  // in Simple, expressions were always int
-  node->type(new basic_type(4, basic_type::TYPE_INT));
+  basic_type *lv = node->lvalue()->type();
+  basic_type *rv = node->rvalue()->type();
+
+  type_unspec_converter(t1, t2);
+
+  if( !sameType(lv, rv) && !( isDouble(lv) && isInt(rv) ) ) //must be of same type (1st case) OR implicitly convertible (2nd case)
+    "wrong type in assignment instruction: cannot assign value of type '" + typeToString(rv) + "' to variable of type '" + typeToString(lv) + "'");
+
+  // in gr8, assignments are untyped (are instructions)
 }
 
 //---------------------------------------------------------------------------
@@ -255,6 +256,7 @@ void gr8::type_checker::do_print_node(gr8::print_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::type_checker::do_read_node(gr8::read_node * const node, int lvl) {
+  ASSERT_UNSPEC //TODO: check if this is necessary
   node->type(new basic_type());  //TODO: check this
 }
 

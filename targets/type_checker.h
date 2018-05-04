@@ -95,6 +95,12 @@ namespace gr8 {
                    (isInt(t1)    && isDouble(t2)) );
       }
 
+      bool sameType(basic_type *t1, basic_type *t2) {
+          if(t1->type()->name() == t2->t1->type()->name()) {
+              return (!isPointer(t1)) true : sameType(t1->subtype(), t2->subtype());
+          }
+      }
+
   public:
       basic_type *type_deep_copy(basic_type *oldtype) {
           basic_type *newtype = new basic_type(oldtype->size(), oldtype->name());
@@ -104,7 +110,7 @@ namespace gr8 {
           return newtype;
       }
 
-      void type_ranking_unspec(basic_type *t1, basic_type *t2) {
+      void type_unspec_converter(basic_type *t1, basic_type *t2) {
           if(isUnspec(t1) && isUnspec(t2)) {
               t1->_name = t2->_name = basic_type::TYPE_INT;
               t1->_size = t2->_size = 4;
