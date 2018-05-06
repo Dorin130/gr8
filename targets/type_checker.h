@@ -121,17 +121,17 @@ namespace gr8 {
               t1->_name = t2->name();
               t1->_size = t2->size();
               t1->_subtype = type_deep_copy(t2->subtype());
-              return;
+              return; //check if this should be removed
           }
 
           if(isUnspec(t2)) {
               t2->_name = t1->name();
               t2->_size = t1->size();
               t2->_subtype = type_deep_copy(t1->subtype());
-              return;
+              return; //check if this should be removed
           }
 
-          //pointers may have UNSPEC in subtype
+          //pointers may have UNSPEC in subtype (e.g. variable declaration objects expression)
           if(isPointer(t1) && isPointer(t2)) {
               type_ranking_unspec(t1->subtype(), t2->subtype());
               return;
