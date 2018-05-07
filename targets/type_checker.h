@@ -4,6 +4,7 @@
 
 #include <string>
 #include <iostream>
+#include <iterator>
 #include <cdk/symbol_table.h>
 #include <cdk/ast/basic_node.h>
 #include "targets/symbol.h"

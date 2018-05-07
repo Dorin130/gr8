@@ -13,14 +13,15 @@ namespace gr8 {
     int _qualifier;
     bool _function;
     std::vector<basic_type*> _param_types;
+    bool _defined;
 
   public:
     symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse) :
-        symbol(type, name, noQualifier, isPublic, isUse, false, std::vector<basic_type*>(0)) {
+        symbol(type, name, noQualifier, isPublic, isUse, false, std::vector<basic_type*>(0), false) {
     }
 
-    symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse, bool function, std::vector<basic_type*> param_types) :
-        _type(type), _name(name), _qualifier(convertToInternal(noQualifier, isPublic, isUse)), _function(function), _param_types(param_types) {
+    symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse, bool isFunction, std::vector<basic_type*> param_types, bool isDefined) :
+        _type(type), _name(name), _qualifier(convertToInternal(noQualifier, isPublic, isUse)), _function(isFunction), _param_types(param_types), _defined(isDefined) {
     }
 
     virtual ~symbol() {
@@ -44,6 +45,15 @@ namespace gr8 {
     }
     inline bool isFunction() {
       return _function;
+    }
+    inline std::vector<basic_type*> param_types() {
+      return _param_types;
+    }
+    inline bool isDefined() {
+      return _defined;
+    }
+    inline bool setDefined(bool val) {
+      return _defined = val;
     }
 
   private:
