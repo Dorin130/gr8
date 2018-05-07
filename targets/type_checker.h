@@ -77,7 +77,6 @@ namespace gr8 {
       inline bool isDouble(basic_type *type)    { return type->name() == basic_type::TYPE_DOUBLE;   }
       inline bool isString(basic_type *type)    { return type->name() == basic_type::TYPE_STRING;   }
       inline bool isPointer(basic_type *type)   { return type->name() == basic_type::TYPE_POINTER;  }
-      inline bool isVoid(basic_type *type)      { return type->name() == basic_type::TYPE_VOID;     }
 
       inline bool isNumber(basic_type *type)    { return isInt(type) || isDouble(type); }
 
@@ -94,19 +93,25 @@ namespace gr8 {
                    (isDouble(t1) && isInt(t2)   ) ||
                    (isInt(t1)    && isDouble(t2)) );
       }
+      inline bool leftTypeCompatible(basic_type *t1, basic_type *t2) { //right type can be implicitly converted to left type
+          return ( (isDouble(t1) && isDouble(t2)) ||
+                   (isDouble(t1) && isInt(t2)   ) ||
+                   (isInt(t1)    && isInt(t2)   ) );
+      }
 
       bool sameType(basic_type *t1, basic_type *t2) {
-          if(t1->type()->name() == t2->t1->type()->name()) {
-              return (!isPointer(t1)) true : sameType(t1->subtype(), t2->subtype());
-          }
+          if(t1 == t2) return true;
+          else if (t1 == nullptr || t2 == nullptr) return false;
+          else if(t1->name() == t2->name()) {
+              return (!isPointer(t1))? true : sameType(t1->subtype(), t2->subtype());
+          } else return false;
       }
 
   public:
       basic_type *type_deep_copy(basic_type *oldtype) {
+          if(oldtype == nullptr) return nullptr;
           basic_type *newtype = new basic_type(oldtype->size(), oldtype->name());
-          if(oldtype->subtype() != nullptr) {
-              newtype->_subtype = type_deep_copy(oldtype->subtype());
-          }
+          newtype->_subtype = type_deep_copy(oldtype->subtype());
           return newtype;
       }
 
@@ -121,23 +126,29 @@ namespace gr8 {
               t1->_name = t2->name();
               t1->_size = t2->size();
               t1->_subtype = type_deep_copy(t2->subtype());
-              return; //check if this should be removed
+              return;
           }
 
           if(isUnspec(t2)) {
               t2->_name = t1->name();
               t2->_size = t1->size();
               t2->_subtype = type_deep_copy(t1->subtype());
-              return; //check if this should be removed
+              return;
           }
 
           //pointers may have UNSPEC in subtype (e.g. variable declaration objects expression)
           if(isPointer(t1) && isPointer(t2)) {
-              type_ranking_unspec(t1->subtype(), t2->subtype());
+              type_unspec_converter(t1->subtype(), t2->subtype());
               return;
           }
 
-          return;
+      }
+
+      void type_unspec_converter(basic_type *t) {
+          if(isUnspec(t)) {
+              t->_name = basic_type::TYPE_INT;
+              t->_size = 4;
+          }
       }
 
   };

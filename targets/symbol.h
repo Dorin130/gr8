@@ -16,7 +16,7 @@ namespace gr8 {
 
   public:
     symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse) :
-        symbol(type, name, bool noQualifier, bool isPublic, bool isUse, false, std::vector<basic_type*>(0)) {
+        symbol(type, name, noQualifier, isPublic, isUse, false, std::vector<basic_type*>(0)) {
     }
 
     symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse, bool function, std::vector<basic_type*> param_types) :
