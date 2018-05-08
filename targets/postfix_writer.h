@@ -41,6 +41,18 @@ namespace gr8 {
     }
 
   public:
+      inline bool isInt(basic_type *type)       { return type->name() == basic_type::TYPE_INT;      }
+      inline bool isDouble(basic_type *type)    { return type->name() == basic_type::TYPE_DOUBLE;   }
+      inline bool isString(basic_type *type)    { return type->name() == basic_type::TYPE_STRING;   }
+      inline bool isPointer(basic_type *type)   { return type->name() == basic_type::TYPE_POINTER;  }
+
+      inline bool bothDoubleImplicitly(basic_type *t1, basic_type *t2) {
+          return ( (isDouble(t1) && isDouble(t2)) ||
+                   (isDouble(t1) && isInt(t2)   ) ||
+                   (isInt(t1)    && isDouble(t2)) );
+      }
+
+  public:
   // do not edit these lines
 #define __IN_VISITOR_HEADER__
 #include "ast/visitor_decls.h"       // automatically generated

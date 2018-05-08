@@ -4,26 +4,6 @@
 #include "targets/postfix_writer.h"
 #include "ast/all.h"  // all.h is automatically generated
 
-//---------------------------------------------------------------------------
-
-void gr8::postfix_writer::do_nil_node(cdk::nil_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_data_node(cdk::data_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_double_node(cdk::double_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
-  // EMPTY
-}
 
 //---------------------------------------------------------------------------
 
@@ -35,8 +15,12 @@ void gr8::postfix_writer::do_sequence_node(cdk::sequence_node * const node, int 
 
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_integer_node(cdk::integer_node * const node, int lvl) {
+void gr8::postfix_writer::do_integer_node(cdk::integer_node * const node, int lvl) {  //COMPLETE (?)
   _pf.INT(node->value()); // push an integer
+}
+
+void gr8::postfix_writer::do_double_node(cdk::double_node * const node, int lvl) { //COMPLETE (?)
+  _pf.DOUBLE(node->value());
 }
 
 void gr8::postfix_writer::do_string_node(cdk::string_node * const node, int lvl) {
@@ -55,78 +39,110 @@ void gr8::postfix_writer::do_string_node(cdk::string_node * const node, int lvl)
 
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_neg_node(cdk::neg_node * const node, int lvl) {
+void gr8::postfix_writer::do_neg_node(cdk::neg_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->argument()->accept(this, lvl); // determine the value
-  _pf.NEG(); // 2-complement
+  if(isDouble(node->argument()->type()))
+    _pf.DNEG();
+  else
+    _pf.NEG(); // 2-complement
+}
+
+void gr8::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {  //COMPLETE (?)
+  ASSERT_SAFE_EXPRESSIONS;
+  node->argument()->accept(this, lvl);
+  if(isDouble(node->argument()->type())) {
+    _pf.DOUBLE(0);
+    _pf.DCMP();
+  } else {
+    _pf.INT(0);
+    _pf.EQ();
+  }
+  _pf.NOT();
 }
 
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {
+void gr8::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.ADD();
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
+    _pf.DADD();
+  else
+    _pf.ADD();
 }
-void gr8::postfix_writer::do_sub_node(cdk::sub_node * const node, int lvl) {
+void gr8::postfix_writer::do_sub_node(cdk::sub_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.SUB();
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
+    _pf.DSUB();
+  else if(isPointer(node->left()->type())) {
+    _pf.SUB();
+    _pf.INT(node->left()->type()->subtype()->size());
+    _pf.DIV();
+  } else
+    _pf.SUB();
 }
-void gr8::postfix_writer::do_mul_node(cdk::mul_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.MUL();
-}
-void gr8::postfix_writer::do_div_node(cdk::div_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.DIV();
-}
-void gr8::postfix_writer::do_mod_node(cdk::mod_node * const node, int lvl) {
+
+void gr8::postfix_writer::do_mod_node(cdk::mod_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->left()->accept(this, lvl);
   node->right()->accept(this, lvl);
   _pf.MOD();
 }
-void gr8::postfix_writer::do_lt_node(cdk::lt_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+
+void gr8::postfix_writer::processBinaryExpressionImplicitConversion(cdk::binary_expression_node * const node, int lvl) { //handles implicit conversion
   node->left()->accept(this, lvl);
+  if(isInt(node->left()->type()) && isDouble(node->right()->type()))
+    _pf.I2D();
   node->right()->accept(this, lvl);
+  if(isDouble(node->left()->type()) && isInt(node->right()->type()))
+    _pf.I2D();
+}
+
+void gr8::postfix_writer::do_mul_node(cdk::mul_node * const node, int lvl) {  //COMPLETE (?)
+  ASSERT_SAFE_EXPRESSIONS;
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
+    _pf.DMUL();
+  else
+    _pf.MUL();
+}
+void gr8::postfix_writer::do_div_node(cdk::div_node * const node, int lvl) {  //COMPLETE (?)
+  ASSERT_SAFE_EXPRESSIONS;
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
+    _pf.DDIV();
+  else
+    _pf.DIV();
+}
+
+void gr8::postfix_writer::do_lt_node(cdk::lt_node * const node, int lvl) {  //COMPLETE (?)
+  ASSERT_SAFE_EXPRESSIONS;
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type())) {
+    _pf.DCMP();
+    _pf.INT(0);
+  }
   _pf.LT();
 }
-void gr8::postfix_writer::do_le_node(cdk::le_node * const node, int lvl) {
+void gr8::postfix_writer::do_gt_node(cdk::gt_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.LE();
-}
-void gr8::postfix_writer::do_ge_node(cdk::ge_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.GE();
-}
-void gr8::postfix_writer::do_gt_node(cdk::gt_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type())) {
+    _pf.DCMP();
+    _pf.INT(0);
+  }
   _pf.GT();
 }
-void gr8::postfix_writer::do_ne_node(cdk::ne_node * const node, int lvl) {
+
+void gr8::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
-  _pf.NE();
-}
-void gr8::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  node->left()->accept(this, lvl);
-  node->right()->accept(this, lvl);
+  processBinaryExpressionImplicitConversion(node, lvl);
+  if(bothDoubleImplicitly(node->left()->type(), node->right()->type())) {
+    _pf.DCMP();
+    _pf.INT(0);
+  }
   _pf.EQ();
 }
 
@@ -138,28 +154,25 @@ void gr8::postfix_writer::do_identifier_node(cdk::identifier_node * const node, 
   _pf.ADDR(node->name());
 }
 
-void gr8::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
+void gr8::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->lvalue()->accept(this, lvl);
-  _pf.LDINT(); // depends on type size
+  if(isDouble(node->lvalue()->type()))
+    _pf.LDDOUBLE();
+  else
+    _pf.LDINT();
 }
 
-void gr8::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
+void gr8::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->rvalue()->accept(this, lvl); // determine the new value
-  _pf.DUP32();
-  if (new_symbol() == nullptr) {
-    node->lvalue()->accept(this, lvl); // where to store the value
-  } else {
-    _pf.DATA(); // variables are all global and live in DATA
-    _pf.ALIGN(); // make sure we are aligned
-    _pf.LABEL(new_symbol()->name()); // name variable location
-    reset_new_symbol();
-    _pf.SINT(0); // initialize it to 0 (zero)
-    _pf.TEXT(); // return to the TEXT segment
-    node->lvalue()->accept(this, lvl);  //DAVID: bah!
-  }
-  _pf.STINT(); // store the value at address
+  node->lvalue()->accept(this, lvl); // where to store the value
+  if(isDouble(node->lvalue()->type())) {
+    if(isInt(node->rvalue()->type()))
+      _pf.I2D();    //implicit conversion
+    _pf.STDOUBLE(); // store the value at address
+  } else
+    _pf.STINT();    // store the value at address
 }
 
 //---------------------------------------------------------------------------
@@ -225,9 +238,12 @@ void gr8::postfix_writer::do_print_node(gr8::print_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_read_node(gr8::read_node * const node, int lvl) {
+void gr8::postfix_writer::do_read_node(gr8::read_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  _pf.CALL("readi");
+  if(isDouble(node->type()))
+    _pf.CALL("readd");
+  else
+    _pf.CALL("readi");
   _pf.LDFVAL32();
 }
 
@@ -273,7 +289,12 @@ void gr8::postfix_writer::do_if_else_node(gr8::if_else_node * const node, int lv
 // TODO
 //---------------------------------------------------------------------------
 
-
+void gr8::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
+  // EMPTY
+}
+void gr8::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
+  // EMPTY
+}
 void gr8::postfix_writer::do_stop_node(gr8::stop_node *const node, int lvl) {
   // EMPTY
 }

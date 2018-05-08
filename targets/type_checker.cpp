@@ -10,7 +10,7 @@
 
 void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lvl) { //Might be unnecessary (not an expression)
   for (auto i : node->nodes())
-      i->accept(this, lvl + 2);
+      i->accept(this, lvl);
 }
 
 //---------------------------------------------------------------------------
@@ -42,6 +42,7 @@ void gr8::type_checker::processUnaryExpression(cdk::unary_expression_node * cons
 
   node->argument()->accept(this, lvl + 2);
   basic_type *t = node->argument()->type();
+
   if (isInt(t))
     node->type(new basic_type(4, basic_type::TYPE_INT));
   else if (isDouble(t))
@@ -61,6 +62,7 @@ void gr8::type_checker::do_not_node(cdk::not_node * const node, int lvl) { //COM
 
   node->argument()->accept(this, lvl + 2);
   basic_type *t = node->argument()->type();
+
   if (isNumber(t) || isString(t) || isPointer(t))
     node->type(new basic_type(4, basic_type::TYPE_INT));
   else throw std::string(
