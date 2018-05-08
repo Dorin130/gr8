@@ -33,7 +33,7 @@ namespace gr8 {
   protected:
     void processUnaryExpression(cdk::unary_expression_node * const node, int lvl);
     void processBinaryExpression(cdk::binary_expression_node * const node, int lvl);
-    void processAdditiveEpression(cdk::binary_expression_node * const node, int lvl);
+    //void processAdditiveEpression(cdk::binary_expression_node * const node, int lvl);
     void processMultiplicativeExpression(cdk::binary_expression_node * const node, int lvl);
     void processBinaryLogicExpression(cdk::binary_expression_node * const node, int lvl);
     template<typename T>
