@@ -65,12 +65,29 @@ void gr8::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {  //
 
 void gr8::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  processBinaryExpressionImplicitConversion(node, lvl);
-  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
-    _pf.DADD();
-  else
-    _pf.ADD();
+  if(isPointer(node->type())) {
+    if(isInt(node->left()->type())) {
+        node->left()->accept(this, lvl);
+        _pf.INT(node->type()->subtype()->size());
+        _pf.MUL();
+        node->right()->accept(this, lvl);
+        _pf.ADD();
+    } else {
+        node->left()->accept(this, lvl);
+        node->right()->accept(this, lvl);
+        _pf.INT(node->type()->subtype()->size());
+        _pf.MUL();
+        _pf.ADD();
+    }
+  } else { //normal add
+    processBinaryExpressionImplicitConversion(node, lvl);
+    if(bothDoubleImplicitly(node->left()->type(), node->left()->type()))
+      _pf.DADD();
+    else
+      _pf.ADD();
+  }
 }
+
 void gr8::postfix_writer::do_sub_node(cdk::sub_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   processBinaryExpressionImplicitConversion(node, lvl);
@@ -93,10 +110,10 @@ void gr8::postfix_writer::do_mod_node(cdk::mod_node * const node, int lvl) {  //
 
 void gr8::postfix_writer::processBinaryExpressionImplicitConversion(cdk::binary_expression_node * const node, int lvl) { //handles implicit conversion
   node->left()->accept(this, lvl);
-  if(isInt(node->left()->type()) && isDouble(node->right()->type()))
+  if(isInt(node->left()->type()) && isDouble(node->type()))
     _pf.I2D();
   node->right()->accept(this, lvl);
-  if(isDouble(node->left()->type()) && isInt(node->right()->type()))
+  if(isInt(node->right()->type()) && isDouble(node->type()))
     _pf.I2D();
 }
 
@@ -311,6 +328,8 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
   // EMPTY
 }
 void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+
   // EMPTY
 }
 void gr8::postfix_writer::do_call_node(gr8::call_node *const node, int lvl) {

@@ -24,6 +24,9 @@ namespace gr8 {
         basic_ast_visitor(compiler), _symtab(symtab), _pf(pf), _lbl(0) {
     }
 
+  protected:
+    void processBinaryExpressionImplicitConversion(cdk::binary_expression_node * const node, int lvl);
+
   public:
     ~postfix_writer() {
       os().flush();
