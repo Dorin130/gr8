@@ -248,8 +248,8 @@ void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, in
 //---------------------------------------------------------------------------
 
 void gr8::type_checker::do_evaluation_node(gr8::evaluation_node * const node, int lvl) { //COMPLETE
+  std::cout << node->argument()->type();
   node->argument()->accept(this, lvl + 2);
-
   type_unspec_converter(node->argument()->type());
 }
 
@@ -465,7 +465,6 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
 
 void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //COMPLETE (?)
   ASSERT_UNSPEC
-
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
@@ -478,30 +477,55 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
     if(!symbol->isFunction()) throw std::string(
       "attempt to call '" + node->name() + "' when it is not a function or procedure");
 
-    else if(!symbol->isDefined()) throw std::string( //RECHECK this for imported (use) functions
-      "attempt to call undefined function/procedure '" + node->name() + "'");
+    //else if(!symbol->isDefined()) throw std::string( //RECHECK this for imported (use) functions
+    //  "attempt to call undefined function/procedure '" + node->name() + "'");
 
     else {//check if types are consistent with previous declaration
-      int arg_no = 1;
-      std::reverse_iterator<std::vector<cdk::basic_node*>::iterator> it_call = node->args()->nodes().rbegin();
-      std::vector<basic_type*>::iterator it_sym = symbol->param_types().begin();
-      for(; it_call != node->args()->nodes().rend() && it_sym != symbol->param_types().end(); it_call++, it_sym++, arg_no++) {
+      int i_call = node->args()->nodes().size();
+      int f_args = symbol->param_types().size();
 
-        (*it_call)->accept(this, lvl); //might be expression
-        basic_type* t_arg = dynamic_cast<var_declaration_node*>(*it_call)->type();
-        type_unspec_converter(t_arg, *it_sym);
-
-        if(!sameType(t_arg, *it_sym)) throw std::string(                                                 //type mismatch
-          "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(arg_no) + ": expected '" +
-          typeToString(*it_sym) + "' but was '" + typeToString(t_arg) + "'");
-      }
-
-      if(it_call == node->args()->nodes().rend() && it_sym != symbol->param_types().end()) throw std::string( //too many params in call
+      if(i_call > f_args) throw std::string( //too many params in call
           "missing arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
 
-      if(it_call != node->args()->nodes().rend() && it_sym == symbol->param_types().end()) throw std::string( //too little params in call
+      if(i_call < f_args) throw std::string( //too little params in call
           "extra arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
+
+      
+      for (i_call--; i_call >= 0; --i_call) {
+        basic_type* t_func_arg = symbol->param_type_at(i_call);
+        node->args()->node(i_call)->accept(this, lvl);
+        basic_type* t_call_arg = dynamic_cast<cdk::expression_node *>(node->args()->node(i_call))->type();
+
+        type_unspec_converter(t_func_arg, t_call_arg);
+
+        if(!sameType(t_func_arg, t_call_arg)) throw std::string(                                                 //type mismatch
+          "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(i_call) + ": expected '" +
+          typeToString(t_func_arg) + "' but was '" + typeToString(t_call_arg) + "'");
+      }
     }
   } else throw std::string(
       "attempt to call undeclared function/procedure '" + node->name() + "'");
+}
+
+//-----------------------------------------------------------------------------------------------
+
+
+void gr8::type_checker::do_le_node(cdk::le_node * const node, int lvl) {
+ //needs to be here but useless
+} 
+
+void gr8::type_checker::do_ge_node(cdk::ge_node * const node, int lvl) {
+ //needs to be here but useless
+}
+
+void gr8::type_checker::do_ne_node(cdk::ne_node * const node, int lvl) {
+  //needs to be here but useless
+}
+
+void gr8::type_checker::do_data_node(cdk::data_node * const node, int lvl) {
+  //needs to be here but useless
+}
+
+void gr8::type_checker::do_nil_node(cdk::nil_node * const node, int lvl) {
+  //needs to be here but useless
 }

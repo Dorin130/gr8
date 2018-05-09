@@ -30,6 +30,8 @@
 %nonassoc LVAL_PREC
 %nonassoc '?'
 
+%nonassoc tOBJECTS
+
 %left tOR
 %left tAND
 %nonassoc tNOT

@@ -1,5 +1,3 @@
 define public small function covfefe as
-	post "string"
-	cell 1 at a?
-	return 0
+	return 1 plus 1.3
 

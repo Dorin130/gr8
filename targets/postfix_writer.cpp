@@ -163,6 +163,7 @@ void gr8::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {  //CO
   _pf.EQ();
 }
 
+
 //---------------------------------------------------------------------------
 
 void gr8::postfix_writer::do_identifier_node(cdk::identifier_node * const node, int lvl) {
@@ -354,5 +355,27 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
   // EMPTY
 }
 void gr8::postfix_writer::do_alloc_node(gr8::alloc_node *const node, int lvl) {
+  // EMPTY
+}
+
+//-----------------------------------------------------------------------------------------------
+
+void gr8::postfix_writer::do_le_node(cdk::le_node * const node, int lvl) {
+ //needs to be here but useless
+}
+
+void gr8::postfix_writer::do_ge_node(cdk::ge_node * const node, int lvl) {
+ //needs to be here but useless
+}
+
+void gr8::postfix_writer::do_nil_node(cdk::nil_node * const node, int lvl) {
+ //needs to be here but useless
+}
+
+void gr8::postfix_writer::do_ne_node(cdk::ne_node * const node, int lvl) {
+ //needs to be here but useless
+}
+
+void gr8::postfix_writer::do_data_node(cdk::data_node * const node, int lvl) {
   // EMPTY
 }
