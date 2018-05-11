@@ -308,22 +308,57 @@ void gr8::postfix_writer::do_if_else_node(gr8::if_else_node * const node, int lv
 //---------------------------------------------------------------------------
 
 void gr8::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  int end_lbl;
+
+  node->left()->accept(this, lvl);
+  _pf.DUP();
+
+  _pf.JZ(mklbl(end_lbl = ++_lbl));
+  _pf.TRASH(node->type()->size());
+
+  node->right()->accept(this, lvl);
+
+  _pf.ALIGN();
+  _pf.LABEL(end_lbl);
 }
+
 void gr8::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  int end_lbl;
+
+  node->left()->accept(this, lvl);
+  _pf.DUP();
+
+  _pf.JNZ(mklbl(end_lbl = ++_lbl));
+  _pf.TRASH(node->type()->size());
+
+  node->right()->accept(this, lvl);
+
+  _pf.ALIGN();
+  _pf.LABEL(end_lbl);
 }
+
 void gr8::postfix_writer::do_stop_node(gr8::stop_node *const node, int lvl) {
   // EMPTY
 }
+
 void gr8::postfix_writer::do_again_node(gr8::again_node *const node, int lvl) {
   // EMPTY
 }
+
 void gr8::postfix_writer::do_cell_node(gr8::cell_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  node->baseptr()->accept(this, lvl);
+
+  node->cell()->accept(this, lvl);
+  
+  _pf.INT(node->type()->size());
+  _pf.MUL();
+  _pf.ADD();
 }
 void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
 }
 void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {
   // EMPTY
@@ -352,7 +387,22 @@ void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration
   // EMPTY
 }
 void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS;
+  //TEXT
+  //ALIGN
+  if(node->isPublic()) {
+    /*GLOBAL*/
+  }
+  //LABEL 
+  //ENTER stack_counter result
+
+  //accepts
+
+
+  //STFVAL32
+  //LEAVE
+  //RET
+  
 }
 void gr8::postfix_writer::do_alloc_node(gr8::alloc_node *const node, int lvl) {
   // EMPTY
