@@ -163,14 +163,46 @@ void gr8::postfix_writer::do_eq_node(cdk::eq_node * const node, int lvl) {  //CO
   _pf.EQ();
 }
 
+void gr8::postfix_writer::processBinaryLogicExpression(cdk::binary_expression_node * const node, int lvl) { //handles implicit conversion
+  node->left()->accept(this, lvl);
+  if(isInt(node->left()->type()) && isDouble(node->type()))
+    _pf.I2D();
+  node->right()->accept(this, lvl);
+  if(isInt(node->right()->type()) && isDouble(node->type()))
+    _pf.I2D();
+}
+
+void gr8::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS
+  int lbl1;
+  node->left()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.DUP32();
+  _pf.JZ(mklbl(lbl1 = ++_lbl));
+  node->right()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.EQ();
+  _pf.LABEL(lbl1);
+}
+
+void gr8::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS
+  int lbl1;
+  node->left()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.DUP32();
+  _pf.JNZ(mklbl(lbl1 = ++_lbl));
+  node->right()->accept(this, lvl);
+  _pf.INT(0);
+  _pf.NE();
+  _pf.NE();
+  _pf.LABEL(lbl1);
+}
 
 //---------------------------------------------------------------------------
-
-void gr8::postfix_writer::do_identifier_node(cdk::identifier_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  // simplified generation: all variables are global
-  _pf.ADDR(node->name());
-}
 
 void gr8::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
@@ -225,26 +257,34 @@ void gr8::postfix_writer::do_program_node(gr8::program_node * const node, int lv
 */
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_evaluation_node(gr8::evaluation_node * const node, int lvl) {
+void gr8::postfix_writer::do_evaluation_node(gr8::evaluation_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->argument()->accept(this, lvl); // determine the value
-  if (node->argument()->type()->name() == basic_type::TYPE_INT) {
+  if (isInt(node->argument()->type())) {
     _pf.TRASH(4); // delete the evaluated value
-  } else if (node->argument()->type()->name() == basic_type::TYPE_STRING) {
+  } else if (isString(node->argument()->type())) {
     _pf.TRASH(4); // delete the evaluated value's address
+  } else if (isDouble(node->argument()->type())) {
+    _pf.TRASH(8);
+  } else if (isPointer(node->argument()->type())) {
+    _pf.TRASH(4);
+  } else if (isVoid(node->argument()->type())) {
   } else {
     std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
     exit(1);
   }
 }
 
-void gr8::postfix_writer::do_print_node(gr8::print_node * const node, int lvl) {
+void gr8::postfix_writer::do_print_node(gr8::print_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->argument()->accept(this, lvl); // determine the value to print
-  if (node->argument()->type()->name() == basic_type::TYPE_INT) {
+  if (isInt(node->argument()->type()) || isPointer(node->argument()->type())) {
     _pf.CALL("printi");
     _pf.TRASH(4); // delete the printed value
-  } else if (node->argument()->type()->name() == basic_type::TYPE_STRING) {
+  } else if (isDouble(node->argument()->type())) {
+    _pf.CALL("printd");
+    _pf.TRASH(8); // delete the printed value's address
+  }else if (isString(node->argument()->type())) {
     _pf.CALL("prints");
     _pf.TRASH(4); // delete the printed value's address
   } else {
@@ -265,22 +305,10 @@ void gr8::postfix_writer::do_read_node(gr8::read_node * const node, int lvl) { /
   _pf.LDFVAL32();
 }
 
-//---------------------------------------------------------------------------
-/*
-void gr8::postfix_writer::do_while_node(gr8::while_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
-  int lbl1, lbl2;
-  _pf.LABEL(mklbl(lbl1 = ++_lbl));
-  node->condition()->accept(this, lvl);
-  _pf.JZ(mklbl(lbl2 = ++_lbl));
-  node->block()->accept(this, lvl + 2);
-  _pf.JMP(mklbl(lbl1));
-  _pf.LABEL(mklbl(lbl2));
-}
-*/
+
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_if_node(gr8::if_node * const node, int lvl) {
+void gr8::postfix_writer::do_if_node(gr8::if_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   int lbl1;
   node->condition()->accept(this, lvl);
@@ -291,7 +319,7 @@ void gr8::postfix_writer::do_if_node(gr8::if_node * const node, int lvl) {
 
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_if_else_node(gr8::if_else_node * const node, int lvl) {
+void gr8::postfix_writer::do_if_else_node(gr8::if_else_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   int lbl1, lbl2;
   node->condition()->accept(this, lvl);
@@ -307,22 +335,36 @@ void gr8::postfix_writer::do_if_else_node(gr8::if_else_node * const node, int lv
 // TODO
 //---------------------------------------------------------------------------
 
-void gr8::postfix_writer::do_and_node(cdk::and_node * const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_or_node(cdk::or_node * const node, int lvl) {
-  // EMPTY
-}
 void gr8::postfix_writer::do_stop_node(gr8::stop_node *const node, int lvl) {
+  int skips = node->argument()->value();
+  if(skips > stack_stop_lbls.size()) throw std::string(
+    "Invalid argument for stop instruction: was " + std::to_string(skips) " but can only break "
+    + std::to_string(stack_stop_lbls.size()) + " cycles.");
+  _pf.JMP(stack_stop_lbls.at(skips-1));
+}
+
+void gr8::postfix_writer::do_again_node(gr8::again_node *const node, int lvl) {
+  int skips = node->argument()->value();
+  if(skips > stack_again_lbls.size()) throw std::string(
+    "Invalid argument for again instruction: was " + std::to_string(skips) " but can only break "
+    + std::to_string(stack_again_lbls.size()) + " cycles.");
+  _pf.JMP(stack_again_lbls.at(skips-1));
+}
+
+void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
   // EMPTY
 }
-void gr8::postfix_writer::do_again_node(gr8::again_node *const node, int lvl) {
-  // EMPTY
+
+
+
+
+
+void gr8::postfix_writer::do_identifier_node(cdk::identifier_node * const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  // simplified generation: all variables are global
+  _pf.ADDR(node->name());
 }
 void gr8::postfix_writer::do_cell_node(gr8::cell_node *const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
   // EMPTY
 }
 void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {

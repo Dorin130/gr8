@@ -11,7 +11,7 @@
 #define NEW_TYPE_STRING new basic_type(4, basic_type::TYPE_STRING)
 #define NEW_TYPE_DOUBLE new basic_type(8, basic_type::TYPE_DOUBLE)
 #define NEW_TYPE_POINTER new basic_type(4, basic_type::TYPE_POINTER)
-
+#define NEW_TYPE_VOID new basic_type(0, basic_type::TYPE_VOID)
 
 
 //---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COM
   basic_type *t2 = node->right()->type();
 
   if(bothDoubleImplicitly(t1, t2)) {
-    MAKE_TYPE(NEW_TYPE_DOUBLE);;
+    MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (isInt(t1) && isInt(t2)) {
       MAKE_TYPE(type_deep_copy(t1));
   } else if (isPointer(t1) && isPointer(t2) && t1->subtype()->name() == t2->subtype()->name()) { //assuming a type with name TYPE_POINTER always has a non-null subtype
@@ -181,7 +181,27 @@ void gr8::type_checker::do_eq_node(cdk::eq_node * const node, int lvl) { //COMPL
   if(!sameType(t1, t2) && !bothDoubleImplicitly(t1, t2)) throw std::string( //must be of same type (1st case) OR implicitly convertible (2nd case)
     "wrong type in right argument of equality expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
 
-  MAKE_TYPE(NEW_TYPE_INT);; //INT ~ BOOLEAN
+  MAKE_TYPE(NEW_TYPE_INT); //INT ~ BOOLEAN
+}
+
+void gr8::type_checker::processBinaryComparisonExpression(cdk::binary_expression_node * const node, int lvl) {
+  processBinaryExpression(node, lvl);
+  basic_type *t1 = node->left()->type();
+  basic_type *t2 = node->right()->type();
+
+  if(bothDoubleImplicitly(t1, t2) || (isInt(t1) && isInt(t2))) {
+      MAKE_TYPE(NEW_TYPE_INT);
+  } else if (!isNumber(t1)) throw std::string(
+      "wrong type in left argument of binary comparison expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
+  else throw std::string(
+      "wrong type in right argument of binary comparison expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
+}
+
+void gr8::type_checker::do_gt_node(cdk::gt_node * const node, int lvl) { //COMPLETE
+  processBinaryComparisonExpression(node, lvl);
+}
+void gr8::type_checker::do_lt_node(cdk::lt_node * const node, int lvl) { //COMPLETE
+  processBinaryComparisonExpression(node, lvl);
 }
 
 void gr8::type_checker::processBinaryLogicExpression(cdk::binary_expression_node * const node, int lvl) {
@@ -189,20 +209,14 @@ void gr8::type_checker::processBinaryLogicExpression(cdk::binary_expression_node
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
-  if(bothDoubleImplicitly(t1, t2) || (isInt(t1) && isInt(t2))) {
-      MAKE_TYPE(NEW_TYPE_INT);;
-  } else if (!isNumber(t1)) throw std::string(
-      "wrong type in left argument of binary expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
+  if((isInt(t1) && isInt(t2))) {
+      MAKE_TYPE(NEW_TYPE_INT);
+  } else if (!isInt(t1)) throw std::string(
+      "wrong type in left argument of binary expression: expected 'small' but was '" + typeToString(t1) + "'");
   else throw std::string(
-      "wrong type in right argument of binary logic expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
+      "wrong type in right argument of binary logic expression: expected 'small' but was '" + typeToString(t2) + "'");
 }
 
-void gr8::type_checker::do_gt_node(cdk::gt_node * const node, int lvl) { //COMPLETE
-  processBinaryLogicExpression(node, lvl);
-}
-void gr8::type_checker::do_lt_node(cdk::lt_node * const node, int lvl) { //COMPLETE
-  processBinaryLogicExpression(node, lvl);
-}
 void gr8::type_checker::do_and_node(cdk::and_node * const node, int lvl) { //COMPLETE
   processBinaryLogicExpression(node, lvl);
 }
@@ -242,7 +256,7 @@ void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, in
   if( !sameType(lv, rv) && !( isDouble(lv) && isInt(rv) ) ) throw std::string( //must be of same type (1st case) OR implicitly convertible (2nd case)
     "wrong type in assignment instruction: cannot assign value of type '" + typeToString(rv) + "' to variable of type '" + typeToString(lv) + "'");
 
-  // in gr8, assignments are untyped (are instructions)
+  MAKE_TYPE(NEW_TYPE_VOID); //assignments return void (instruction)
 }
 
 //---------------------------------------------------------------------------
