@@ -304,6 +304,16 @@ void gr8::type_checker::do_stop_node(gr8::stop_node *const node, int lvl) { //CO
 void gr8::type_checker::do_again_node(gr8::again_node *const node, int lvl) { //COMPLETE
 }
 void gr8::type_checker::do_return_node(gr8::return_node *const node, int lvl) { //INCOMPLETE
+  basic_type *t_ret;
+  if(node->ret() != nullptr) {
+    node->ret()->accept(this, lvl);
+    t_ret = node->ret()->type();
+  } else {
+    t_ret = MAKE_TYPE(NEW_TYPE_VOID);
+  }
+  if (!sameType(_parent.get_current_function_type(), t_ret)) throw std::string( //Error example: small i (initially 3 objects)
+      "type mismatch between return instruction and function return type: expected '" + typeToString(_parent.get_current_function_type()) +
+      "' but was '" + typeToString(t_ret) + "'");
 }
 void gr8::type_checker::do_block_node(gr8::block_node *const node, int lvl) { //COMPLETE
 }

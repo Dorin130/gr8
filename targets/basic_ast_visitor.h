@@ -25,6 +25,7 @@ private:
 
   // last symbol inserted in symbol table
   std::shared_ptr<gr8::symbol> _new_symbol;
+  basic_type* _current_function_type = nullptr;
 
 protected:
   basic_ast_visitor(std::shared_ptr<cdk::compiler> compiler) :
@@ -54,6 +55,22 @@ public:
 
   void reset_new_symbol() {
     _new_symbol = nullptr;
+  }
+
+  void set_current_function_type(basic_type *t) {
+    _current_function_type = t;
+  }
+
+  basic_type* get_current_function_type() {
+    return _current_function_type;
+  }
+
+  void reset_current_function_type() {
+    _current_function_type = nullptr;
+  }
+
+  bool in_function() {
+    return _current_function_type != nullptr;
   }
 
 public:

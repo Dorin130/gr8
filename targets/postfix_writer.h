@@ -20,6 +20,8 @@ namespace gr8 {
     int _lbl;
     std::vector<int> stack_again_lbls = std::vector<int>();
     std::vector<int> stack_stop_lbls = std::vector<int>();
+    bool last_instr_return = false;
+    bool _in_arguments = false;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<gr8::symbol> &symtab,
@@ -58,6 +60,7 @@ namespace gr8 {
                    (isDouble(t1) && isInt(t2)   ) ||
                    (isInt(t1)    && isDouble(t2)) );
       }
+
 
   public:
   // do not edit these lines
