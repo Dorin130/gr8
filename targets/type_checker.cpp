@@ -400,15 +400,25 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
   basic_type *declared_type = node->type();
   std::string id = node->name();
 
-  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id, node->noQualifier(), node->isPublic(), node->isUse());
-  if (!_symtab.insert(id, symbol))
+  if(_parent.in_function() && (node->isPublic() || node->isUse())) throw std::string(
+      "cannot import or export variables in function definition");
+
+  if (_symtab.find_local(id))
     throw id + " redeclared";
+
+  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id, node->noQualifier(), node->isPublic(), node->isUse());
+  _symtab.insert(id, symbol);
 
   if (node->init()) {
     node->init()->accept(this, lvl + 2);
     type_unspec_converter(declared_type, node->init()->type());
+    
     if (!sameType(declared_type, node->init()->type())) throw std::string( //Error example: small i (initially 3 objects)
       "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(node->init()->type()) + "'");
+    
+    if(!_parent.in_function())
+      if(!dynamic_cast<cdk::literal_node *>(node->init())) throw std::string(
+        "global variables should be initialized with literals");
   }
 
   _parent->set_new_symbol(symbol);
@@ -425,7 +435,12 @@ void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_n
 
   std::vector<basic_type*> param_types;
   for(cdk::basic_node *arg : node->args()->nodes()) {
-    param_types.push_back(type_deep_copy(dynamic_cast<var_declaration_node*>(arg)->type()));
+    var_declaration_node* arg_node = dynamic_cast<var_declaration_node*>(arg);
+
+    if((arg_node->isPublic() || arg_node->isUse() || arg_node->init())) throw std::string(
+    "cannot import, export or provide an initial value for variables in function declarations");
+
+    param_types.push_back(type_deep_copy(arg_node->type()));
   }
 
   std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id,
@@ -477,10 +492,17 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
     }
   } else { //same as declaration node
     std::vector<basic_type*> param_types;
-    for(cdk::basic_node *arg : node->args()->nodes())
-      param_types.push_back(type_deep_copy(dynamic_cast<var_declaration_node*>(arg)->type()));
+    for(cdk::basic_node *arg : node->args()->nodes()) {
+      var_declaration_node* arg_node = dynamic_cast<var_declaration_node*>(arg);
 
-    std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(defined_type, id, node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, true);
+      if((arg_node->isPublic() || arg_node->isUse() || arg_node->init())) throw std::string(
+      "cannot import, export or provide an initial value for variables in function declarations");
+
+      param_types.push_back(type_deep_copy(arg_node->type()));
+    }
+
+    std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(defined_type, id,
+      node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, true);
     _symtab.insert(id, symbol);
 
     _parent->set_new_symbol(symbol);

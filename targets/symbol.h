@@ -14,7 +14,7 @@ namespace gr8 {
     bool _function;
     std::vector<basic_type*> _param_types;
     bool _defined;
-    bool _global;
+    int _offset;
 
   public:
     symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse) :
@@ -50,7 +50,7 @@ namespace gr8 {
     inline std::vector<basic_type*> param_types() {
       return _param_types;
     }
-     inline basic_type* param_type_at(int i) {
+    inline basic_type* param_type_at(int i) {
       return _param_types.at(i);
     }
     inline bool isDefined() {
@@ -59,11 +59,11 @@ namespace gr8 {
     inline bool setDefined(bool val) {
       return _defined = val;
     }
-    inline bool setGlobal(bool val) {
-      return _global=val;
+    inline int setOffset(int offset) {
+      return _offset = offset;
     }
-    inline bool getGlobal() {
-      return _global;
+    inline int getOffset() {
+      return _offset;
     }
 
   private:

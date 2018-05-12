@@ -22,6 +22,7 @@ namespace gr8 {
     std::vector<int> stack_stop_lbls = std::vector<int>();
     bool last_instr_return = false;
     bool _in_arguments = false;
+    int _current_offset = 0;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<gr8::symbol> &symtab,

@@ -439,7 +439,77 @@ void gr8::postfix_writer::do_cell_node(gr8::cell_node *const node, int lvl) { //
 
 
 void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS
+
+  std::shared_ptr<gr8::symbol> symbol = _symtab.find(node->name());
+
+  if(in_function() && _in_arguments) {              //function argument
+    symbol->setOffset(_current_offset);
+    _current_offset += node->type()->size();
+  }
+
+  if(in_function() && !_in_arguments) {             //local variable
+    _current_offset -= node->type()->size();
+    symbol->setOffset(_current_offset);
+
+    if(node->init()) {                              //local variable with init
+      node->init()->accept(this, lvl);
+
+      if(isDouble(node->type()) && isInt(node->init()->type()))
+        _pf.I2D();
+
+      _pf.LOCAL(_current_offset);
+      if(isDouble(t_func_arg))
+        _pf.STDOUBLE();
+      else
+        _pf.STINT();
+  }
+
+  if(!in_function() && !node->init()) {             //module global uninitialized variable
+    _pf.BSS();
+    _pf.ALIGN();
+
+    if(node->isPublic())
+      _pf.GLOBAL(node->name(), _pf.OBJ());
+
+    _pf.LABEL(node->name());
+    _pf.SALLOC(node->type()->size());
+
+    _pf.TEXT(); //TODO: make sure segment switches are correct
+  }
+
+  if(!in_function() && node->init()) {             //module global initialized variable
+    int lbl1;
+    mklbl(lbl1 = ++_lbl);
+    cdk::literal_node init_node = dynamic_cast<cdk::literal_node*>(node->init());
+    basic_type *t_init = node->init()->type();
+
+    if(isString(t_init)) {                         //strings are special (read only)
+      _pf.RODATA();
+      _pf.ALIGN();
+      _pf.LABEL(mklbl(lbl1 = ++_lbl));
+      _pf.SSTRING(init_node->value())
+
+      _pf.DATA();
+      _pf.ALIGN();
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
+      _pf.LABEL(node->name());
+      _pf.SADDR(lbl1);                             //initialize with RO string address
+    } else {
+      _pf.DATA();
+      _pf.ALIGN();
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
+      _pf.LABEL(node->name());
+      if(isDouble(t_init))
+        _pf.STDOUBLE(init_node->value())
+      else
+        _pf.STINT(init_node->value())
+    }
+
+    _pf.TEXT(); //TODO: make sure segment switches are correct
+  }
 }
 
 void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) {
@@ -520,18 +590,18 @@ void gr8::postfix_writer::do_address_of_node(gr8::address_of_node *const node, i
   node->lvalue()->accept(this, lvl);
 }
 
-void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) { //missing things
+void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) { //missing things (extern etc)
   ASSERT_SAFE_EXPRESSIONS
 }
 
-void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) { //missing things possibly
+void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) { //missing things possibly (extern etc)
   ASSERT_SAFE_EXPRESSIONS;
   set_current_function_type(node->type());
 
   gr8::stack_counter counter(_compiler); \
   node->accept(&counter, 0); 
 
-  _pf.TEXT(); //what if previous segment was text? may need auxiliary function
+  _pf.TEXT(); //what if previous segment was text? may need auxiliary function. Might automatically verify if already in TEXT
   _pf.ALIGN();
 
   if(node->isPublic()) {
@@ -540,10 +610,12 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
   _pf.LABEL(node->id());
   _pf.ENTER(counter.size());
 
+  _current_offset = 8;
   _in_arguments = true;
   node->args()->accept(this, lvl);
   _in_arguments = false;
 
+  _current_offset = 0;
   node->body()->accept(this, lvl);
 
   _pf.LEAVE();
@@ -556,7 +628,7 @@ void gr8::postfix_writer::do_alloc_node(gr8::alloc_node *const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS
 
   node->argument()->accept(this, lvl);
-  _pf.INT(node->type()->subtype()->size();)
+  _pf.INT(node->type()->subtype()->size());
   _pf.MUL();
 
   _pf.ALLOC();
@@ -598,3 +670,80 @@ void gr8::postfix_writer::do_ne_node(cdk::ne_node * const node, int lvl) {
 void gr8::postfix_writer::do_data_node(cdk::data_node * const node, int lvl) {
   // EMPTY
 }
+
+
+/* old var declaration
+void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS
+
+  _pf.ALIGN();
+
+  std::shared_ptr<gr8::symbol> symbol = _symtab.find(node->name());
+
+  if(in_function()) {
+    if(_in_arguments) {                               //argument declaration
+      symbol->setOffset(_current_offset);
+      _current_offset += node->type()->size();
+
+    } else {                                          //local variable declaration
+      _current_offset -= node->type()->size();
+      symbol->setOffset(_current_offset);
+
+      if(node->init()) {                              //local variable's init
+        node->init()->accept(this, lvl);
+
+        if(isDouble(node->type()) && isInt(node->init()->type()))
+          _pf.I2D();
+
+        _pf.LOCAL(_current_offset);
+        if(isDouble(t_func_arg))
+          _pf.STDOUBLE();
+        else
+          _pf.STINT();
+      }  
+    }
+  } else {                                            //module global variable declaration
+    if(!node->init()) {
+      _pf.BSS();
+      _pf.ALIGN();
+
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
+
+      _pf.LABEL(node->name());
+      _pf.SALLOC(node->type()->size());
+    } else {                                           //literal in init
+      int lbl1;
+      mklbl(lbl1 = ++_lbl);
+      cdk::literal_node init_node = dynamic_cast<cdk::literal_node*>(node->init());
+      basic_type *t_init = node->init()->type();
+
+      if(isString(t_init)) {
+        _pf.RODATA();
+        _pf.ALIGN();
+        _pf.LABEL(mklbl(lbl1 = ++_lbl));
+        _pf.SSTRING(init_node->value())
+
+        _pf.DATA();
+        _pf.ALIGN();
+        if(node->isPublic())
+          _pf.GLOBAL(node->name(), _pf.OBJ());
+        _pf.LABEL(node->name());
+        _pf.SADDR(lbl1);
+      } else {
+        _pf.DATA();
+        _pf.ALIGN();
+        if(node->isPublic())
+          _pf.GLOBAL(node->name(), _pf.OBJ());
+        _pf.LABEL(node->name());
+        if(isDouble(t_init))
+          _pf.STDOUBLE(init_node->value())
+        else
+          _pf.STINT(init_node->value())
+      }
+
+      _pf.TEXT();
+    }
+  }
+}
+*/
