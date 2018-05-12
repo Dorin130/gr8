@@ -40,6 +40,11 @@ void gr8::postfix_writer::do_string_node(cdk::string_node * const node, int lvl)
   _pf.ADDR(mklbl(lbl1)); // the string to be printed
 }
 
+void gr8::postfix_writer::do_null_node(gr8::null_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS
+  _pf.INT(0);
+}
+
 //---------------------------------------------------------------------------
 
 void gr8::postfix_writer::do_neg_node(cdk::neg_node * const node, int lvl) {  //COMPLETE (?)
@@ -430,11 +435,6 @@ void gr8::postfix_writer::do_cell_node(gr8::cell_node *const node, int lvl) { //
   _pf.INT(node->type()->size());
   _pf.MUL();
   _pf.ADD();
-
-  if(isDouble(node->type()))
-    _pf.LDDOUBLE();
-  else
-    _pf.LDINT();
 }
 
 
@@ -460,25 +460,71 @@ void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) 
 }
 
 void gr8::postfix_writer::do_call_node(gr8::call_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS
+
+  std::string id = node->name();
+  if(id == "covfefe")
+    id = "_main";
+  else if(node->name() == "_main")
+    id = "ex_main";
+
+  std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
+
+  //check if types are consistent with previous declaration
+  int i_call = node->args()->nodes().size();
+  int f_args = symbol->param_types().size();
+
+  int args_size = 0;
+  for (i_call--; i_call >= 0; --i_call) {
+    basic_type* t_func_arg = symbol->param_type_at(i_call);
+    node->args()->node(i_call)->accept(this, lvl);
+
+    basic_type* t_call_arg = dynamic_cast<cdk::expression_node *>(node->args()->node(i_call))->type();
+
+    if(isDouble(t_func_arg) && isInt(t_call_arg))
+      _pf.I2D();
+
+    if(isDouble(t_func_arg)) {
+      _pf.STDOUBLE();
+      args_size += 8;
+    } else {
+      _pf.STINT();
+      args_size += 4;
+    }
+  }
+
+  _pf.CALL(id);
+  _pf.TRASH(args_size);
+
+  if (isDouble(symbol->type())) {
+    _pf.LDFVAL64(); // delete the evaluated value
+  } else if (isInt(symbol->type()) || isPointer(symbol->type()) || isString(symbol->type())) {
+    _pf.LDFVAL32();
+  } else if (isVoid(symbol->type())) {
+    //EMPTY
+  } else {
+    std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
+    exit(1);
+  }
 }
+
 void gr8::postfix_writer::do_block_node(gr8::block_node *const node, int lvl) {
   _symtab.push();
   node->decls()->accept(this, lvl);
   node->instrs()->accept(this, lvl);
   _symtab.pop();
-  // EMPTY
 }
+
 void gr8::postfix_writer::do_address_of_node(gr8::address_of_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS
+  node->lvalue()->accept(this, lvl);
 }
-void gr8::postfix_writer::do_null_node(gr8::null_node *const node, int lvl) {
-  // EMPTY
+
+void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) { //missing things
+  ASSERT_SAFE_EXPRESSIONS
 }
-void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) {
-  // EMPTY
-}
-void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) {
+
+void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) { //missing things possibly
   ASSERT_SAFE_EXPRESSIONS;
   set_current_function_type(node->type());
 
@@ -497,7 +543,7 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
   _in_arguments = true;
   node->args()->accept(this, lvl);
   _in_arguments = false;
-  //accepts
+
   node->body()->accept(this, lvl);
 
   _pf.LEAVE();
@@ -505,9 +551,31 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
 
   reset_current_function_type();
 }
+
 void gr8::postfix_writer::do_alloc_node(gr8::alloc_node *const node, int lvl) {
-  // EMPTY
+  ASSERT_SAFE_EXPRESSIONS
+
+  node->argument()->accept(this, lvl);
+  _pf.INT(node->type()->subtype()->size();)
+  _pf.MUL();
+
+  _pf.ALLOC();
+  _pf.SP();      //address of allocated memory
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //-----------------------------------------------------------------------------------------------
 

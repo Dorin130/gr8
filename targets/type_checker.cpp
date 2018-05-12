@@ -501,8 +501,8 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
     if(!symbol->isFunction()) throw std::string(
       "attempt to call '" + node->name() + "' when it is not a function or procedure");
 
-    //else if(!symbol->isDefined()) throw std::string( //RECHECK this for imported (use) functions
-    //  "attempt to call undefined function/procedure '" + node->name() + "'");
+    else if(!symbol->isDefined() && !symbol->isUse()) throw std::string( //RECHECK this for imported (use) functions
+      "attempt to call undefined function/procedure '" + node->name() + "'");
 
     else {//check if types are consistent with previous declaration
       int i_call = node->args()->nodes().size();
@@ -522,11 +522,14 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
 
         type_unspec_converter(t_func_arg, t_call_arg);
 
-        if(!sameType(t_func_arg, t_call_arg)) throw std::string(                                                 //type mismatch
+        if(!sameType(t_func_arg, t_call_arg) && !bothDoubleImplicitly(t_func_arg, t_call_arg)) throw std::string(                                                 //type mismatch
           "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(i_call) + ": expected '" +
           typeToString(t_func_arg) + "' but was '" + typeToString(t_call_arg) + "'");
       }
     }
+
+    MAKE_TYPE(type_deep_copy(symbol->type()));
+
   } else throw std::string(
       "attempt to call undeclared function/procedure '" + node->name() + "'");
 }
