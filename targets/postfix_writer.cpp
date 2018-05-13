@@ -613,6 +613,8 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
   _pf.LABEL(node->name());
   _pf.ENTER(counter.size());
 
+  _symtab.push();
+
   _current_offset = 8;
   _in_arguments = true;
   node->args()->accept(this, lvl);
@@ -620,6 +622,8 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
 
   _current_offset = 0;
   node->body()->accept(this, lvl);
+
+  _symtab.pop();
 
   _pf.LEAVE();
   _pf.RET();  

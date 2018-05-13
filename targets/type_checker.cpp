@@ -311,7 +311,8 @@ void gr8::type_checker::do_return_node(gr8::return_node *const node, int lvl) { 
   } else {
     t_ret = NEW_TYPE_VOID;
   }
-  if (!sameType(_parent->get_current_function_type(), t_ret)) throw std::string( //Error example: small i (initially 3 objects)
+  basic_type* f_type = _parent->get_current_function_type();
+  if (!sameType(f_type, t_ret) && !(isDouble(f_type)) && isInt(t_ret)) throw std::string( //Error example: small i (initially 3 objects)
       "type mismatch between return instruction and function return type: expected '" + typeToString(_parent->get_current_function_type()) +
       "' but was '" + typeToString(t_ret) + "'");
 }
@@ -414,12 +415,12 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
     type_unspec_converter(declared_type, node->init()->type());
     basic_type* t_init = node->init()->type();
 
-    if (!sameType(declared_type, t_init)) throw std::string( //Error example: small i (initially 3 objects)
+    if (!sameType(declared_type, t_init) && !(isDouble(declared_type)) && isInt(t_init)) throw std::string( //Error example: small i (initially 3 objects)
       "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(t_init) + "'");
     
     if(!_parent->in_function())
       if((isInt(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())     ) ||
-         (isDouble(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())  ) ||
+         (isDouble(t_init) && !dynamic_cast<cdk::double_node *>(node->init())  ) ||
          (isString(t_init) && !dynamic_cast<cdk::string_node *>(node->init())   ) ||
          (isPointer(t_init) && !dynamic_cast<gr8::null_node *>(node->init())    ) ) throw std::string(
         "global variables should be initialized with literals");
@@ -475,22 +476,25 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
           typeToString(symbol->type()) + "' but was '" + typeToString(defined_type) + "'");
 
     else {//check if types are consistent with previous declaration
-      int arg_no = 1;
-      std::vector<cdk::basic_node*>::iterator it_def = node->args()->nodes().begin();
-      std::vector<basic_type*>::iterator it_sym = symbol->param_types().begin();
-      for(; it_def != node->args()->nodes().end() && it_sym != symbol->param_types().end(); it_def++, it_sym++, arg_no++) {
+      int f_args = node->args()->nodes().size();
+      int d_args = symbol->param_types().size();
 
-        basic_type* t_arg = dynamic_cast<var_declaration_node*>(*it_def)->type();
-        if(!sameType(t_arg, *it_sym)) throw std::string(                                                 //type mismatch
-          "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(arg_no) + ": expected '" +
-          typeToString(*it_sym) + "' but was '" + typeToString(t_arg) + "'");
+      if(f_args > d_args) throw std::string( //too many params in definition
+          "extra parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " parameters.");
+
+      if(f_args < d_args) throw std::string( //too little params in call
+          "missing parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " parameters.");
+
+      
+      for (f_args--; f_args >= 0; --f_args) {
+        basic_type* t_decl_arg = symbol->param_type_at(f_args);
+        node->args()->node(f_args)->accept(this, lvl);
+        basic_type* t_def_arg = dynamic_cast<var_declaration_node*>(node->args()->node(f_args))->type();
+
+        if(!sameType(t_decl_arg, t_def_arg) && !bothDoubleImplicitly(t_decl_arg, t_def_arg)) throw std::string(                                                 //type mismatch
+          "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(f_args) + ": expected '" +
+          typeToString(t_decl_arg) + "' but was '" + typeToString(t_def_arg) + "'");
       }
-
-      if(it_def == node->args()->nodes().end() && it_sym != symbol->param_types().end()) throw std::string( //too many params in definition
-          "missing arguments in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
-
-      if(it_def != node->args()->nodes().end() && it_sym == symbol->param_types().end()) throw std::string( //too little params in definition
-          "extra arguments in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
 
       symbol->setDefined(true);
     }
@@ -526,19 +530,19 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
 
     if(!symbol->isFunction()) throw std::string(
       "attempt to call '" + node->name() + "' when it is not a function or procedure");
-
-    else if(!symbol->isDefined() && !symbol->isUse()) throw std::string( //RECHECK this for imported (use) functions
+      /*
+    else if(!symbol->isDefined() && !symbol->isUse()) throw std::string( //functions can be defined later :(
       "attempt to call undefined function/procedure '" + node->name() + "'");
-
+      */    //functions can be defined later --> need to add "used functions list"
     else {//check if types are consistent with previous declaration
       int i_call = node->args()->nodes().size();
       int f_args = symbol->param_types().size();
 
       if(i_call > f_args) throw std::string( //too many params in call
-          "missing arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
+          "extra arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
 
       if(i_call < f_args) throw std::string( //too little params in call
-          "extra arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
+          "missing arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
 
       
       for (i_call--; i_call >= 0; --i_call) {
@@ -549,7 +553,7 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
         type_unspec_converter(t_func_arg, t_call_arg);
 
         if(!sameType(t_func_arg, t_call_arg) && !bothDoubleImplicitly(t_func_arg, t_call_arg)) throw std::string(                                                 //type mismatch
-          "type mismatch between declaration and definition of '" + id + "' in argument " + std::to_string(i_call) + ": expected '" +
+          "type mismatch between call and definition of '" + id + "' in argument " + std::to_string(i_call) + ": expected '" +
           typeToString(t_func_arg) + "' but was '" + typeToString(t_call_arg) + "'");
       }
     }
