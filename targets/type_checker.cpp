@@ -309,10 +309,10 @@ void gr8::type_checker::do_return_node(gr8::return_node *const node, int lvl) { 
     node->ret()->accept(this, lvl);
     t_ret = node->ret()->type();
   } else {
-    t_ret = MAKE_TYPE(NEW_TYPE_VOID);
+    t_ret = NEW_TYPE_VOID;
   }
-  if (!sameType(_parent.get_current_function_type(), t_ret)) throw std::string( //Error example: small i (initially 3 objects)
-      "type mismatch between return instruction and function return type: expected '" + typeToString(_parent.get_current_function_type()) +
+  if (!sameType(_parent->get_current_function_type(), t_ret)) throw std::string( //Error example: small i (initially 3 objects)
+      "type mismatch between return instruction and function return type: expected '" + typeToString(_parent->get_current_function_type()) +
       "' but was '" + typeToString(t_ret) + "'");
 }
 void gr8::type_checker::do_block_node(gr8::block_node *const node, int lvl) { //COMPLETE
@@ -400,7 +400,7 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
   basic_type *declared_type = node->type();
   std::string id = node->name();
 
-  if(_parent.in_function() && (node->isPublic() || node->isUse())) throw std::string(
+  if(_parent->in_function() && (node->isPublic() || node->isUse())) throw std::string(
       "cannot import or export variables in function definition");
 
   if (_symtab.find_local(id))
@@ -412,12 +412,16 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
   if (node->init()) {
     node->init()->accept(this, lvl + 2);
     type_unspec_converter(declared_type, node->init()->type());
+    basic_type* t_init = node->init()->type();
+
+    if (!sameType(declared_type, t_init)) throw std::string( //Error example: small i (initially 3 objects)
+      "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(t_init) + "'");
     
-    if (!sameType(declared_type, node->init()->type())) throw std::string( //Error example: small i (initially 3 objects)
-      "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(node->init()->type()) + "'");
-    
-    if(!_parent.in_function())
-      if(!dynamic_cast<cdk::literal_node *>(node->init())) throw std::string(
+    if(!_parent->in_function())
+      if((isInt(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())     ) ||
+         (isDouble(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())  ) ||
+         (isString(t_init) && !dynamic_cast<cdk::string_node *>(node->init())   ) ||
+         (isPointer(t_init) && !dynamic_cast<gr8::null_node *>(node->init())    ) ) throw std::string(
         "global variables should be initialized with literals");
   }
 

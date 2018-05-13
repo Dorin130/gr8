@@ -36,6 +36,7 @@ namespace gr8 {
     //void processAdditiveEpression(cdk::binary_expression_node * const node, int lvl);
     void processMultiplicativeExpression(cdk::binary_expression_node * const node, int lvl);
     void processBinaryLogicExpression(cdk::binary_expression_node * const node, int lvl);
+    void processBinaryComparisonExpression(cdk::binary_expression_node * const node, int lvl);
     template<typename T>
     void process_literal(cdk::literal_node<T> * const node, int lvl) {
     }
