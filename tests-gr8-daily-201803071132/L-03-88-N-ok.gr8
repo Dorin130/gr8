@@ -1,6 +1,0 @@
-small function g uses small i
-define small function f on small i as
-  use 1 for g
-
-
-

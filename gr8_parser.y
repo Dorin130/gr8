@@ -27,8 +27,6 @@
 %token <s> tSTRING tIDENTIFIER
 %token tSMALL tHUGE tNEWS tFAKE tINITIALLY tUSE tPUBLIC tDEFINE tPROCEDURE tFUNCTION tON tAS tDO tUSES tFOR tRETURN tPLUS tMINUS tTIMES tOVER tMODULUS tNOT tAND tOR tASSIGN tTO tCELL tAT tABOVE tBELOW tEQUALS tINPUT tOBJECTS tIF tTHEN tELSIF tELSE tSTOP tAGAIN tPOST tTWEET tSWEEPING tFROM tBY tNULL 
 
-%nonassoc LVAL_PREC
-%nonassoc '?'
 
 %nonassoc tOBJECTS
 
@@ -188,7 +186,10 @@ ifconditions
     ;
 
 lval
-    : tCELL expr tAT expr                                           { $$ = new gr8::cell_node(LINE, $4, $2);                 }
+    : tCELL expr tAT lval                                           { $$ = new gr8::cell_node(LINE, new cdk::rvalue_node(LINE, $4), $2);}
+    | tCELL expr tAT literal                                        { $$ = new gr8::cell_node(LINE, $4, $2);                 }
+    | tCELL expr tAT functioncall                                   { $$ = new gr8::cell_node(LINE, $4, $2);                 }
+    | tCELL expr tAT '(' expr ')'                                   { $$ = new gr8::cell_node(LINE, $5, $2);                 }
     | tIDENTIFIER                                                   { $$ = new cdk::identifier_node(LINE, $1); delete $1;    }
     ;
 
@@ -232,7 +233,7 @@ expr
     | expr tOR expr                                                 { $$ = new cdk::or_node(LINE, $1, $3);         }
     | expr tAND expr                                                { $$ = new cdk::and_node(LINE, $1, $3);        }
     | lval '?'                                                      { $$ = new gr8::address_of_node(LINE, $1);     }
-    | lval %prec LVAL_PREC                                          { $$ = new cdk::rvalue_node(LINE, $1);         }
+    | lval                                                          { $$ = new cdk::rvalue_node(LINE, $1);         }
     | expr tOBJECTS                                                 { $$ = new gr8::alloc_node(LINE, $1);          }
     | '(' expr ')'                                                  { $$ = $2;                                     }
     ;

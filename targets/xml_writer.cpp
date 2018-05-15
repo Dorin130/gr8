@@ -61,7 +61,7 @@ void gr8::xml_writer::do_double_node(cdk::double_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::xml_writer::do_unary_expression(cdk::unary_expression_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   node->argument()->accept(this, lvl + 2);
   closeTag(node, lvl);
@@ -74,7 +74,7 @@ void gr8::xml_writer::do_neg_node(cdk::neg_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::xml_writer::do_binary_expression(cdk::binary_expression_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   node->left()->accept(this, lvl + 2);
   node->right()->accept(this, lvl + 2);
@@ -118,19 +118,19 @@ void gr8::xml_writer::do_eq_node(cdk::eq_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::xml_writer::do_identifier_node(cdk::identifier_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label() << ">" << node->name() << "</" << node->label() << ">" << std::endl;
 }
 
 void gr8::xml_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   node->lvalue()->accept(this, lvl + 2);
   closeTag(node, lvl);
 }
 
 void gr8::xml_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("lvalue", lvl+2);
   node->lvalue()->accept(this, lvl + 4);
@@ -160,7 +160,7 @@ void gr8::xml_writer::do_evaluation_node(gr8::evaluation_node * const node, int 
 }
 
 void gr8::xml_writer::do_print_node(gr8::print_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label() 
   << " newline='" << std::boolalpha << node->newline() << "'>" << std::endl;
   if(node->argument()!=nullptr) {
@@ -174,7 +174,7 @@ void gr8::xml_writer::do_print_node(gr8::print_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::xml_writer::do_read_node(gr8::read_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   closeTag(node, lvl);
 }
@@ -196,7 +196,7 @@ void gr8::xml_writer::do_while_node(gr8::while_node * const node, int lvl) {
 //---------------------------------------------------------------------------
 
 void gr8::xml_writer::do_if_node(gr8::if_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("condition", lvl + 2);
   node->condition()->accept(this, lvl + 4);
@@ -208,7 +208,7 @@ void gr8::xml_writer::do_if_node(gr8::if_node * const node, int lvl) {
 }
 
 void gr8::xml_writer::do_if_else_node(gr8::if_else_node * const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("condition", lvl + 2);
   node->condition()->accept(this, lvl + 4);
@@ -236,7 +236,7 @@ void gr8::xml_writer::do_again_node(gr8::again_node *const node, int lvl) {
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_cell_node(gr8::cell_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("baseptr", lvl + 2);
   node->baseptr()->accept(this, lvl + 4);
@@ -247,7 +247,7 @@ void gr8::xml_writer::do_cell_node(gr8::cell_node *const node, int lvl) {
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("sweep", lvl+2);
   node->sweep()->accept(this, lvl+4);
@@ -267,7 +267,7 @@ void gr8::xml_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) 
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label() 
     << " public='" << std::boolalpha <<  node->isPublic() << "'"
     << " use='" <<  node->isUse() << "'"
@@ -282,7 +282,7 @@ void gr8::xml_writer::do_var_declaration_node(gr8::var_declaration_node *const n
 }
 
 void gr8::xml_writer::do_return_node(gr8::return_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   openTag("return", lvl + 2);
   node->ret()->accept(this, lvl + 4);
@@ -290,7 +290,7 @@ void gr8::xml_writer::do_return_node(gr8::return_node *const node, int lvl) {
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_call_node(gr8::call_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label()
        << " name='" << node->name() << "'>" << std::endl;
   if(node->args() != nullptr) {
@@ -321,20 +321,20 @@ void gr8::xml_writer::do_block_node(gr8::block_node *const node, int lvl) {
 }
 
 void gr8::xml_writer::do_address_of_node(gr8::address_of_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   node->lvalue()->accept(this, lvl + 2);
   closeTag(node, lvl);
 }
 
 void gr8::xml_writer::do_null_node(gr8::null_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   openTag(node, lvl);
   closeTag(node, lvl);
 }
 
 void gr8::xml_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label() 
     << " public='" << std::boolalpha <<  node->isPublic() << "'"
     << " use='" <<  node->isUse() << "'"
@@ -348,7 +348,7 @@ void gr8::xml_writer::do_function_declaration_node(gr8::function_declaration_nod
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   os() << std::string(lvl, ' ') << "<" << node->label() 
     << " public='" << std::boolalpha <<  node->isPublic() << "'"
     << " use='" <<  node->isUse() << "'"
@@ -365,6 +365,6 @@ void gr8::xml_writer::do_function_definition_node(gr8::function_definition_node 
   closeTag(node, lvl);
 }
 void gr8::xml_writer::do_alloc_node(gr8::alloc_node *const node, int lvl) {
-  ASSERT_SAFE_EXPRESSIONS;
+  /* ASSERT_SAFE_EXPRESSIONS; */
   do_unary_expression(node, lvl);
 }

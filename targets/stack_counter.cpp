@@ -32,7 +32,6 @@ void gr8::stack_counter::do_cell_node(gr8::cell_node *const node, int lvl) {}
 void gr8::stack_counter::do_return_node(gr8::return_node *const node, int lvl) {}
 void gr8::stack_counter::do_call_node(gr8::call_node *const node, int lvl) {}
 void gr8::stack_counter::do_identity_node(gr8::identity_node *const node, int lvl) {}
-void gr8::stack_counter::do_block_node(gr8::block_node *const node, int lvl) {}
 void gr8::stack_counter::do_null_node(gr8::null_node *const node, int lvl) {}
 void gr8::stack_counter::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) {}
 void gr8::stack_counter::do_alloc_node(gr8::alloc_node *const node, int lvl) {}
@@ -49,6 +48,11 @@ void gr8::stack_counter::do_address_of_node(gr8::address_of_node *const node, in
 
 void gr8::stack_counter::do_function_definition_node(gr8::function_definition_node *const node, int lvl) {
   node->body()->accept(this, lvl);
+}
+
+void gr8::stack_counter::do_block_node(gr8::block_node *const node, int lvl) {
+	node->declarations()->accept(this, lvl);
+	node->instructions()->accept(this, lvl);
 }
 
 void gr8::stack_counter::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {

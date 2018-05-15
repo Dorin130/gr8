@@ -1,4 +1,0 @@
-define public small function covfefe as
-	 tweet "ola"
-	 return 0
-

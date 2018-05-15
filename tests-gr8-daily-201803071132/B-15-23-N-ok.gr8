@@ -1,4 +1,0 @@
-define public small function covfefe as
-	 tweet 10 equals 3 or 10 equals 3
-	 return 0
-

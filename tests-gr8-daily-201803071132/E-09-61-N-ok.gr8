@@ -1,6 +1,0 @@
-define public small function covfefe as
-  small x
-  sweeping x from 0 to 29 do
-    tweet x
-  return 0
-

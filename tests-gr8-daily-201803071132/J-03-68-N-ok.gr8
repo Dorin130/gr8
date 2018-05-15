@@ -1,6 +1,0 @@
-define news function f as
-  return "ola"
-define public small function covfefe as
-  post do f
-  return 0
-

@@ -65,14 +65,16 @@ void gr8::postfix_writer::do_identity_node(gr8::identity_node *const node, int l
 void gr8::postfix_writer::do_not_node(cdk::not_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->argument()->accept(this, lvl);
+  
   if(isDouble(node->argument()->type())) {
     _pf.DOUBLE(0);
     _pf.DCMP();
+    _pf.INT(0);
+    _pf.EQ();
   } else {
     _pf.INT(0);
     _pf.EQ();
   }
-  _pf.NOT();
 }
 
 //---------------------------------------------------------------------------
@@ -223,13 +225,15 @@ void gr8::postfix_writer::do_rvalue_node(cdk::rvalue_node * const node, int lvl)
 void gr8::postfix_writer::do_assignment_node(cdk::assignment_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
   node->rvalue()->accept(this, lvl); // determine the new value
-  node->lvalue()->accept(this, lvl); // where to store the value
   if(isDouble(node->lvalue()->type())) {
     if(isInt(node->rvalue()->type()))
       _pf.I2D();    //implicit conversion
+    node->lvalue()->accept(this, lvl); // where to store the value
     _pf.STDOUBLE(); // store the value at address
-  } else
+  } else {
+    node->lvalue()->accept(this, lvl); // where to store the value
     _pf.STINT();    // store the value at address
+  }
 }
 
 //---------------------------------------------------------------------------
@@ -290,26 +294,36 @@ void gr8::postfix_writer::do_print_node(gr8::print_node * const node, int lvl) {
   if (isInt(node->argument()->type()) || isPointer(node->argument()->type())) {
     _pf.CALL("printi");
     _pf.TRASH(4); // delete the printed value
+    _extern_funcs.insert("printi");
   } else if (isDouble(node->argument()->type())) {
     _pf.CALL("printd");
     _pf.TRASH(8); // delete the printed value's address
+    _extern_funcs.insert("printd");
   }else if (isString(node->argument()->type())) {
     _pf.CALL("prints");
     _pf.TRASH(4); // delete the printed value's address
+    _extern_funcs.insert("prints");
   } else {
     std::cerr << "ERROR: CANNOT HAPPEN!" << std::endl;
     exit(1);
   }
-  _pf.CALL("println"); // print a newline
+  if (node->newline()) {
+    _pf.CALL("println"); // print a newline
+    _extern_funcs.insert("println");
+  }
 }
 
 
 void gr8::postfix_writer::do_read_node(gr8::read_node * const node, int lvl) { //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  if(isDouble(node->type()))
-    _pf.CALL("readd");
-  else
-    _pf.CALL("readi");
+  if(isDouble(node->type())) {
+      _pf.CALL("readd");
+      _extern_funcs.insert("readd");
+    }
+  else{
+      _pf.CALL("readi");
+      _extern_funcs.insert("readi");
+    }
   _pf.LDFVAL32();
 }
 
@@ -345,7 +359,7 @@ void gr8::postfix_writer::do_stop_node(gr8::stop_node *const node, int lvl) {
   if(skips > stack_stop_lbls.size()) throw std::string(
     "Invalid argument for stop instruction: was " + std::to_string(skips) + " but can only break "
     + std::to_string(stack_stop_lbls.size()) + " cycles.");
-  _pf.JMP(mklbl(stack_stop_lbls.at(skips-1)));
+  _pf.JMP(mklbl(stack_stop_lbls.at(stack_stop_lbls.size()-skips)));
 }
 
 void gr8::postfix_writer::do_again_node(gr8::again_node *const node, int lvl) {
@@ -353,7 +367,7 @@ void gr8::postfix_writer::do_again_node(gr8::again_node *const node, int lvl) {
   if(skips > stack_again_lbls.size()) throw std::string(
     "Invalid argument for again instruction: was " + std::to_string(skips) + " but can only break "
     + std::to_string(stack_again_lbls.size()) + " cycles.");
-  _pf.JMP(mklbl(stack_again_lbls.at(skips-1)));
+  _pf.JMP(mklbl(stack_again_lbls.at(stack_again_lbls.size()-skips)));
 }
 
 void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
@@ -364,53 +378,33 @@ void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int l
   stack_again_lbls.push_back(incr_lbl_str);
   stack_stop_lbls.push_back(end_lbl_str);
 
-  node->sweep()->accept(this, lvl);
-  _pf.DUP32(); //address is 4 bytes
-  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) { //assuming 'from' is int -- ask teacher
-    node->from()->accept(this, lvl);
-    _pf.I2D();
-    _pf.STDOUBLE();
-  } else {
-    node->from()->accept(this, lvl);
-    _pf.STINT();
-  }
-  _pf.LABEL(mklbl(cond_lbl_str)); //condition
-  _pf.DUP32(); //address is 4 bytes
-  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) {
-    _pf.LDDOUBLE();
-    node->to()->accept(this, lvl);
-    _pf.I2D();
-    _pf.DCMP();
-    _pf.INT(0);
-    _pf.GT();
-  } else {
-    _pf.LDINT();
-    node->from()->accept(this, lvl);
-    _pf.GT();
-  }
-  _pf.JNZ(mklbl(end_lbl_str));
+  cdk::assignment_node* sweep =  new cdk::assignment_node(node->lineno(),node->sweep(), node->from());
+  sweep->accept(this, lvl);
 
+  _pf.ALIGN();
+  _pf.LABEL(mklbl(cond_lbl_str)); //condition
+
+  /* yes i know its ugly, but it works */
+  cdk::gt_node* cond = new cdk::gt_node(node->lineno(), node->by(), new cdk::integer_node(node->lineno(), 0));
+  cdk::gt_node* gt = new cdk::gt_node(node->lineno(), new cdk::rvalue_node(node->lineno(), node->sweep()), node->to());
+  cdk::lt_node* lt = new cdk::lt_node(node->lineno(), new cdk::rvalue_node(node->lineno(), node->sweep()), node->to());
+  gr8::if_else_node* ifs = new gr8::if_else_node(node->lineno(), cond, gt, lt);
+  ifs->accept(this, lvl);
+  _pf.JNZ(mklbl(end_lbl_str));
+  
   node->doBlock()->accept(this, lvl);
 
+  _pf.ALIGN();
   _pf.LABEL(mklbl(incr_lbl_str));
-  _pf.DUP32();
-  _pf.DUP32();
-  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) {
-    _pf.LDDOUBLE();
-    node->by()->accept(this, lvl);
-    _pf.I2D();
-    _pf.DADD();
-    _pf.STDOUBLE();
-  } else {
-    _pf.LDINT();
-    node->from()->accept(this, lvl);
-    _pf.ADD();
-    _pf.STINT();
-  }
+
+  cdk::add_node* by = new cdk::add_node(node->lineno(), new cdk::rvalue_node(node->lineno(), node->sweep()), node->by());
+  sweep = new cdk::assignment_node(node->lineno(), node->sweep(), by);
+  sweep->accept(this, lvl);  
 
   _pf.JMP(mklbl(cond_lbl_str));
+  _pf.ALIGN();
   _pf.LABEL(mklbl(end_lbl_str));
-  _pf.TRASH(4); //address that was stored at top of stack
+
   stack_again_lbls.pop_back();
   stack_stop_lbls.pop_back();
 }
@@ -423,8 +417,17 @@ void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int l
 
 void gr8::postfix_writer::do_identifier_node(cdk::identifier_node * const node, int lvl) {
   ASSERT_SAFE_EXPRESSIONS;
-  // simplified generation: all variables are global
-  _pf.ADDR(node->name());
+
+  std::shared_ptr<gr8::symbol> symbol = _symtab.find(node->name());
+
+  if(symbol==nullptr) throw std::string("identifier: " + node->name() + " not found!");
+
+  if(symbol->isGlobal() && !symbol->isFunction()){
+    _pf.ADDR(symbol->name());
+  }
+  else{
+    _pf.LOCAL(symbol->getOffset());
+  }
 }
 
 void gr8::postfix_writer::do_cell_node(gr8::cell_node *const node, int lvl) { //COMPLETE (?)
@@ -446,12 +449,14 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
 
   if(in_function() && _in_arguments) {              //function argument
     symbol->setOffset(_current_offset);
+    symbol->setGlobal(false);
     _current_offset += node->type()->size();
   }
 
   if(in_function() && !_in_arguments) {             //local variable
     _current_offset -= node->type()->size();
     symbol->setOffset(_current_offset);
+    symbol->setGlobal(false);
 
     if(node->init()) {                              //local variable with init
       node->init()->accept(this, lvl);
@@ -499,9 +504,13 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
       _pf.GLOBAL(node->name(), _pf.OBJ());
     _pf.LABEL(node->name());
 
+
     if(isString(t_init)) {
       _pf.SADDR(mklbl(lbl1));                      //initialize with ReadOnly string address
-    } else if(isDouble(t_init)) {
+    } else if(isDouble(node->type()) && isInt(t_init)) {
+      cdk::integer_node *init_node = dynamic_cast<cdk::integer_node*>(node->init());
+      _pf.SDOUBLE(init_node->value());
+    }else if(isDouble(t_init)) {
       cdk::double_node *init_node = dynamic_cast<cdk::double_node*>(node->init());
       _pf.SDOUBLE(init_node->value());
     } else if(isInt(t_init)) {
@@ -514,6 +523,7 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
 
     _pf.TEXT(); //TODO: make sure segment switches are correct
   }
+
 }
 
 void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) {
@@ -522,8 +532,11 @@ void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) 
 
   if(node->ret() != nullptr) {
     node->ret()->accept(this, lvl);
-
-    if(isDouble(node->ret()->type()))
+    if (isDouble(get_current_function_type()) && isInt(node->ret()->type())) {
+      _pf.I2D();
+      _pf.STFVAL64();
+    }
+    else if(isDouble(node->ret()->type()))
       _pf.STFVAL64();
     else
       _pf.STFVAL32();
@@ -544,6 +557,10 @@ void gr8::postfix_writer::do_call_node(gr8::call_node *const node, int lvl) {
 
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
 
+  if (symbol->isUse()) {
+    _extern_funcs.insert(node->name());
+  }
+
   //check if types are consistent with previous declaration
   int i_call = node->args()->nodes().size();
 
@@ -558,16 +575,18 @@ void gr8::postfix_writer::do_call_node(gr8::call_node *const node, int lvl) {
       _pf.I2D();
 
     if(isDouble(t_func_arg)) {
-      _pf.STDOUBLE();
+      //_pf.STDOUBLE();
       args_size += 8;
     } else {
-      _pf.STINT();
+      //_pf.STINT();
       args_size += 4;
     }
   }
 
   _pf.CALL(id);
   _pf.TRASH(args_size);
+
+
 
   if (isDouble(symbol->type())) {
     _pf.LDFVAL64(); // delete the evaluated value
@@ -595,22 +614,30 @@ void gr8::postfix_writer::do_address_of_node(gr8::address_of_node *const node, i
 
 void gr8::postfix_writer::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) { //missing things (extern etc)
   ASSERT_SAFE_EXPRESSIONS
+  _extern_funcs.insert(node->name());
 }
 
 void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_node *const node, int lvl) { //missing things possibly (extern etc)
   ASSERT_SAFE_EXPRESSIONS;
   set_current_function_type(node->type());
 
-  gr8::stack_counter counter(_compiler); \
+  std::string id = node->name();
+  if(id == "covfefe")
+    id = "_main";
+  else if(node->name() == "_main")
+    id = "ex_main";
+
+  gr8::stack_counter counter(_compiler);
   node->accept(&counter, 0); 
 
   _pf.TEXT(); //what if previous segment was text? may need auxiliary function. Might automatically verify if already in TEXT
   _pf.ALIGN();
 
   if(node->isPublic()) {
-    _pf.GLOBAL(node->name(), _pf.FUNC());
+    _pf.GLOBAL(id, _pf.FUNC());
   }
-  _pf.LABEL(node->name());
+
+  _pf.LABEL(id);
   _pf.ENTER(counter.size());
 
   _symtab.push();
@@ -625,8 +652,12 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
 
   _symtab.pop();
 
-  _pf.LEAVE();
-  _pf.RET();  
+  if (isVoid(node->type())) {
+    _pf.LEAVE();
+    _pf.RET();  
+  }
+
+  _extern_funcs.erase(node->name()); // i think i need to do more then this
 
   reset_current_function_type();
 }
@@ -753,4 +784,63 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
     }
   }
 }
+
+void gr8::postfix_writer::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
+  ASSERT_SAFE_EXPRESSIONS;
+  int cond_lbl_str = ++_lbl;
+  int end_lbl_str = ++_lbl;
+  int incr_lbl_str = ++_lbl;
+  stack_again_lbls.push_back(incr_lbl_str);
+  stack_stop_lbls.push_back(end_lbl_str);
+
+  node->sweep()->accept(this, lvl);
+  _pf.DUP32(); //address is 4 bytes
+  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) { //assuming 'from' is int -- ask teacher
+    node->from()->accept(this, lvl);
+    _pf.I2D();
+    _pf.STDOUBLE();
+  } else {
+    node->from()->accept(this, lvl);
+    _pf.STINT();
+  }
+  _pf.LABEL(mklbl(cond_lbl_str)); //condition
+  _pf.DUP32(); //address is 4 bytes
+  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) {
+    _pf.LDDOUBLE();
+    node->to()->accept(this, lvl);
+    _pf.I2D();
+    _pf.DCMP();
+    _pf.INT(0);
+    _pf.GT();
+  } else {
+    _pf.LDINT();
+    node->from()->accept(this, lvl);
+    _pf.GT();
+  }
+  _pf.JNZ(mklbl(end_lbl_str));
+
+  node->doBlock()->accept(this, lvl);
+
+  _pf.LABEL(mklbl(incr_lbl_str));
+  _pf.DUP32();
+  _pf.DUP32();
+  if(isDouble(node->sweep()->type()) && isInt(node->from()->type())) {
+    _pf.LDDOUBLE();
+    node->by()->accept(this, lvl);
+    _pf.I2D();
+    _pf.DADD();
+    _pf.STDOUBLE();
+  } else {
+    _pf.LDINT();
+    node->from()->accept(this, lvl);
+    _pf.ADD();
+    _pf.STINT();
+  }
+
+  _pf.JMP(mklbl(cond_lbl_str));
+  _pf.LABEL(mklbl(end_lbl_str));
+  _pf.TRASH(4); //address that was stored at top of stack
+  stack_again_lbls.pop_back();
+  stack_stop_lbls.pop_back();
+
 */

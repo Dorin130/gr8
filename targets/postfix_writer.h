@@ -3,6 +3,7 @@
 
 #include <string>
 #include <vector>
+#include <unordered_set>
 #include <iostream>
 #include <cdk/symbol_table.h>
 #include <cdk/emitters/basic_postfix_emitter.h>
@@ -23,6 +24,8 @@ namespace gr8 {
     bool last_instr_return = false;
     bool _in_arguments = false;
     int _current_offset = 0;
+    std::unordered_set<std::string> _extern_funcs = std::unordered_set<std::string>();
+
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<gr8::symbol> &symtab,
@@ -60,6 +63,13 @@ namespace gr8 {
           return ( (isDouble(t1) && isDouble(t2)) ||
                    (isDouble(t1) && isInt(t2)   ) ||
                    (isInt(t1)    && isDouble(t2)) );
+      }
+
+
+      inline void listExtern(){
+        for (std::unordered_set<std::string>::iterator func=_extern_funcs.begin(); func!=_extern_funcs.end(); func++){
+          _pf.EXTERN(*func);
+        }
       }
 
 

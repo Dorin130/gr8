@@ -262,7 +262,6 @@ void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, in
 //---------------------------------------------------------------------------
 
 void gr8::type_checker::do_evaluation_node(gr8::evaluation_node * const node, int lvl) { //COMPLETE
-  std::cout << node->argument()->type();
   node->argument()->accept(this, lvl + 2);
   type_unspec_converter(node->argument()->type());
 }
@@ -414,7 +413,11 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
     node->init()->accept(this, lvl + 2);
     type_unspec_converter(declared_type, node->init()->type());
     basic_type* t_init = node->init()->type();
-
+/*
+    if (isDouble(declared_type) && isInt(t_init)) {
+      node->init()->type(NEW_TYPE_DOUBLE);
+    }
+*/
     if (!sameType(declared_type, t_init) && !(isDouble(declared_type)) && isInt(t_init)) throw std::string( //Error example: small i (initially 3 objects)
       "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(t_init) + "'");
     
@@ -449,7 +452,7 @@ void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_n
   }
 
   std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id,
-    node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, false);
+    node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, false, true);
   if (!_symtab.insert(id, symbol))
     throw id + " redeclared";
 
@@ -510,7 +513,7 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
     }
 
     std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(defined_type, id,
-      node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, true);
+      node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, true, true);
     _symtab.insert(id, symbol);
 
     _parent->set_new_symbol(symbol);

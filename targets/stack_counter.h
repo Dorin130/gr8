@@ -15,7 +15,7 @@ namespace gr8 {
   //!
   class stack_counter: public basic_ast_visitor {
   private:
-    size_t _size;
+    int _size;
 
   public:
     stack_counter(std::shared_ptr<cdk::compiler> compiler):
@@ -26,7 +26,7 @@ namespace gr8 {
       os().flush();
     }
 
-  size_t size() { return _size; }
+  int size() { return _size; }
 
   public:
   // do not edit these lines

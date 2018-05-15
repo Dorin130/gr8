@@ -14,15 +14,16 @@ namespace gr8 {
     bool _function;
     std::vector<basic_type*> _param_types;
     bool _defined;
+    bool _global;
     int _offset;
 
   public:
     symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse) :
-        symbol(type, name, noQualifier, isPublic, isUse, false, std::vector<basic_type*>(0), false) {
+        symbol(type, name, noQualifier, isPublic, isUse, false, std::vector<basic_type*>(0), true, true) {
     }
 
-    symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse, bool isFunction, std::vector<basic_type*> param_types, bool isDefined) :
-        _type(type), _name(name), _qualifier(convertToInternal(noQualifier, isPublic, isUse)), _function(isFunction), _param_types(param_types), _defined(isDefined) {
+    symbol(basic_type *type, const std::string &name, bool noQualifier, bool isPublic, bool isUse, bool isFunction, std::vector<basic_type*> param_types, bool isDefined, bool global) :
+        _type(type), _name(name), _qualifier(convertToInternal(noQualifier, isPublic, isUse)), _function(isFunction), _param_types(param_types), _defined(isDefined), _global(global) {
     }
 
     virtual ~symbol() {
@@ -58,6 +59,12 @@ namespace gr8 {
     }
     inline bool setDefined(bool val) {
       return _defined = val;
+    }
+    inline bool isGlobal() {
+      return _global;
+    }
+    inline bool setGlobal(bool val) {
+      return _global = val;
     }
     inline int setOffset(int offset) {
       return _offset = offset;

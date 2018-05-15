@@ -1,4 +1,0 @@
-define public small function covfefe as
-  post "~122" << "not" "a" "string" >> "A"
-  return 0
-

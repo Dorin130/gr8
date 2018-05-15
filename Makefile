@@ -2,7 +2,7 @@
 #             CONFIGURE THESE VARIABLES IF NEEDED
 #---------------------------------------------------------------
 
-ROOT = ${HOME}/Documents/Sem2/Compiladores/root
+ROOT = ${HOME}/compiladores/root
 CDK_INC_DIR = $(ROOT)/usr/include
 CDK_LIB_DIR = $(ROOT)/usr/lib
 CDK_BIN_DIR = $(ROOT)/usr/bin
