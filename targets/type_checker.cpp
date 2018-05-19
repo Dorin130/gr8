@@ -299,7 +299,11 @@ void gr8::type_checker::do_evaluation_node(gr8::evaluation_node * const node, in
 void gr8::type_checker::do_print_node(gr8::print_node * const node, int lvl) { //COMPLETE
   node->argument()->accept(this, lvl + 2);
 
-  type_unspec_converter(node->argument()->type());
+  basic_type* t_arg = node->argument()->type();
+  type_unspec_converter(t_arg);
+  if(isPointer(t_arg)) throw std::string(
+    "wrong type of argument of printing instruction: expected argument of type 'small' or 'huge' or 'news' but was '" + typeToString(t_arg) + "'"); //ask if double can be in sweeping*/
+  
 }
 
 //---------------------------------------------------------------------------

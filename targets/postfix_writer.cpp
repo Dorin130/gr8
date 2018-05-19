@@ -479,16 +479,21 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
         _pf.STINT();
     }
   }
+  
+  if (symbol->isUse()) {
+      _extern_funcs.insert(node->name());
+      return;
+  }
 
   if(!in_function() && !node->init()) {             //module global uninitialized variable
-    switchSegment(BSS);
-    _pf.ALIGN();
+      switchSegment(BSS);
+      _pf.ALIGN();
 
-    if(node->isPublic())
-      _pf.GLOBAL(node->name(), _pf.OBJ());
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
 
-    _pf.LABEL(node->name());
-    _pf.SALLOC(node->type()->size());
+      _pf.LABEL(node->name());
+      _pf.SALLOC(node->type()->size());
 
   }
 

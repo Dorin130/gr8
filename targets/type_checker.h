@@ -49,6 +49,10 @@ namespace gr8 {
   // do not edit these lines: end
   public:
       std::string typeToString(basic_type *t) {
+          return typeToString(t, false);
+      }
+
+      std::string typeToString(basic_type *t, bool isFake) {
           switch (t->name()) {
           case basic_type::TYPE_UNSPEC:
             return "unspec";
@@ -60,11 +64,17 @@ namespace gr8 {
             return "news";
           case basic_type::TYPE_POINTER:
           {
-            std::string sub = typeToString(t->subtype());
+            std::string sub = typeToString(t->subtype(), true);
             if(sub.find("news", sub.size()-4) != std::string::npos)
                 return "fake " + sub;
-            else
+            else if(!isFake)
                 return sub + " fake";
+            else if(sub.find("small") != std::string::npos)
+                return "small " + sub;
+            else if(sub.find("huge") != std::string::npos)
+                return "huge " + sub;
+            else
+                return "fake " + sub;
           }
           case basic_type::TYPE_VOID:
             return "void";
@@ -72,7 +82,43 @@ namespace gr8 {
             return "undefined type";
           }
       }
+/*
+      std::string typeToString(basic_type *t, std::string &repeat, std::string &last) {
+        switch (t->name()) {
+          case basic_type::TYPE_UNSPEC:
+            repeat = "fake "; last = "unspec";
+            return "unspec";
+          case basic_type::TYPE_INT:
+            repeat = "small "; last = "fake";
+            return "small";
+          case basic_type::TYPE_DOUBLE:
+            repeat = "huge "; last = "fake";
+            return "huge";
+          case basic_type::TYPE_STRING:
+            repeat = "fake "; last = "news";
+            return "news";
+          case basic_type::TYPE_POINTER:
+            if(t->_subtype->name() != basic_type::TYPE_POINTER) {
+              typeToString(t->_subtype, repeat, last);
+              return repeat + last;
+            }
+            return repeat + typeToString(t->_subtype, repeat, last);
+          case basic_type::TYPE_VOID:
+            repeat = "fake "; last = "void";
+            return "void";
+          default:
+            repeat = "fake "; last = "undefined";
+            return "undefined";
+          }
+      }
 
+      std::string typeToString(basic_type *t) {
+        std::string repeat = "";
+        std::string last = "";
+        return typeToString(t, repeat, last);
+      }
+
+*/
   public:
       inline bool isUnspec(basic_type *type)    { return type->name() == basic_type::TYPE_UNSPEC;   }
       inline bool isInt(basic_type *type)       { return type->name() == basic_type::TYPE_INT;      }

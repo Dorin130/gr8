@@ -210,8 +210,8 @@ literal
     ;
 
 string
-    : string tSTRING                                                { $$ = new std::string(*$1 + $2->c_str()); delete $1; delete $2;}
-    | tSTRING                                                       { $$ = new std::string($1->c_str()); delete $1;}
+    : string tSTRING                                                { $$ = new std::string(*$1 + *$2); delete $1; delete $2;}
+    | tSTRING                                                       { $$ = $1;}
     ;     
 
 expr   

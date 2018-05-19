@@ -20,16 +20,14 @@ std::vector<int> indents;
 #define yyerror LexerError
 
 %}
-%x X_STRING X_COMMENT X_ESCAPE X_NEWLINE X_CHECK_INDENT
+%x X_STRING X_COMMENT X_ESCAPE X_NEWLINE X_CHECK_INDENT X_IGNORE
 
 IDENTIFIER 						[a-zA-Z][0-9a-zA-Z-]*
 SYMBOL							[()?,]
 SPACE      						[ \t]+
-
 DIGI							[0-9]
 EXPONENT          				[eE][-+]?{DIGI}+
 HEPT             				[0-6]
-NOTZERO                         0[0]+
 INT7							0{HEPT}+
 INT10							[1-9]{DIGI}*|0
 REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPONENT}?
@@ -95,7 +93,7 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 
 {IDENTIFIER}					{ yylval.s = new std::string(yytext); return tIDENTIFIER; }
 {REAL}               		 	{ yylval.d = strtod(yytext, nullptr); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tREAL; }
-{NOTZERO}                       { yyerror("Not a valid representation of zero"); }
+0[0]+                           { yyerror("Not a valid representation of zero"); }
 {INT7}			  		 		{ yylval.i = strtol(yytext, nullptr, 7); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER; }
 {INT10}               			{ yylval.i = strtol(yytext, nullptr, 10); if(errno == ERANGE) yyerror("ERANGE (Overflow)"); return tINTEGER;}
 
@@ -106,6 +104,10 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 <X_STRING>\n|\0			   		{ yyerror("Invalid character in string (NUL, LF)"); } /* ask teacher if necessary; separate error messages if so */
 <X_STRING>.         		  	{ *yylval.s += yytext; }
 
+<X_ESCAPE>0                     { yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
+<X_ESCAPE>00                    { yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
+<X_ESCAPE>000                   { yy_pop_state(); yy_pop_state(); yy_push_state(X_IGNORE);}
+
 <X_ESCAPE>n						{ *yylval.s += "\n"; yy_pop_state();}
 <X_ESCAPE>r		        		{ *yylval.s += "\r"; yy_pop_state();}
 <X_ESCAPE>t		        		{ *yylval.s += "\t"; yy_pop_state();}
@@ -114,6 +116,10 @@ REAL							{DIGI}+{EXPONENT}|{DIGI}+"."{DIGI}*{EXPONENT}?|{DIGI}*"."{DIGI}+{EXPO
 
 <X_ESCAPE>{HEPT}{HEPT}?{HEPT}? 	{ if(strtol(yytext, nullptr, 7) < 256) *yylval.s += std::string(1, strtol(yytext, nullptr, 7)); else yyerror(std::string(std::to_string(yylineno) + ":Char not 8-bit!").c_str());  yy_pop_state();}
 <X_ESCAPE>.						yyerror("Unknown character in string!");
+
+<X_IGNORE>~\"                   { ; /* ignore */}
+<X_IGNORE>~~                    { ; /* ignore */}
+<X_IGNORE>.|\n                  { ; /* ignore */}
 
 
         /* Comment treatment section */
