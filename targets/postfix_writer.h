@@ -15,6 +15,9 @@ namespace gr8 {
   //!
   //! Traverse syntax tree and generate the corresponding assembly code.
   //!
+
+  enum Segment { NONE, BSS, DATA, RODATA, TEXT }; 
+
   class postfix_writer: public basic_ast_visitor {
     cdk::symbol_table<gr8::symbol> &_symtab;
     cdk::basic_postfix_emitter &_pf;
@@ -25,7 +28,8 @@ namespace gr8 {
     bool _in_arguments = false;
     int _current_offset = 0;
     std::unordered_set<std::string> _extern_funcs = std::unordered_set<std::string>();
-
+    std::vector<cdk::assignment_node *> _inits;
+    Segment _segment = NONE;
 
   public:
     postfix_writer(std::shared_ptr<cdk::compiler> compiler, cdk::symbol_table<gr8::symbol> &symtab,
@@ -69,6 +73,24 @@ namespace gr8 {
       inline void listExtern(){
         for (std::unordered_set<std::string>::iterator func=_extern_funcs.begin(); func!=_extern_funcs.end(); func++){
           _pf.EXTERN(*func);
+        }
+      }
+
+      void switchSegment(Segment segment) {
+        if (_segment == segment) {
+          return ;
+        } else if (segment == BSS){
+          _pf.BSS();
+          _segment = BSS;
+        } else if (segment == DATA){
+          _pf.DATA();
+          _segment = DATA;
+        } else if (segment == RODATA){
+          _pf.RODATA();
+          _segment = RODATA;
+        } else if (segment == TEXT){
+          _pf.TEXT();
+          _segment = TEXT;
         }
       }
 

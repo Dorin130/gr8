@@ -79,6 +79,32 @@ void gr8::type_checker::do_not_node(cdk::not_node * const node, int lvl) { //COM
 
 //---------------------------------------------------------------------------
 
+void gr8::type_checker::processAdditiveExpression(cdk::binary_expression_node * const node, int lvl) {
+  ASSERT_UNSPEC;
+  node->left()->accept(this, lvl + 2);
+  node->right()->accept(this, lvl + 2);
+
+  basic_type *t1 = node->left()->type();
+  basic_type *t2 = node->right()->type();
+
+  if(isPointer(t1) && isUnspec(t2)) {
+    t2->_name = basic_type::TYPE_INT;
+    t2->_size = 4;
+  } else if(isUnspec(t1) && isPointer(t2)) {
+    t1->_name = basic_type::TYPE_INT;
+    t1->_size = 4;
+  } else {
+    type_unspec_converter(t1,t2);
+  }
+
+  if(!isNumber(t1) && !isPointer(t1)) throw std::string(
+    "wrong type in left argument of binary expression: expected 'small' or 'huge' or 'fake' but was '" + typeToString(t1) + "'");
+  if(!isNumber(t2) && !isPointer(t2)) throw std::string(
+    "wrong type in right argument of binary expression: expected 'small' or 'huge' or 'fake' but was '" + typeToString(t2) + "'");
+
+}
+
+
 void gr8::type_checker::processBinaryExpression(cdk::binary_expression_node * const node, int lvl) {
   ASSERT_UNSPEC;
   node->left()->accept(this, lvl + 2);
@@ -95,7 +121,6 @@ void gr8::type_checker::processBinaryExpression(cdk::binary_expression_node * co
     "wrong type in right argument of binary expression: expected 'small' or 'huge' or 'fake' but was '" + typeToString(t2) + "'");
 
 }
-
 void gr8::type_checker::processMultiplicativeExpression(cdk::binary_expression_node * const node, int lvl) {
   processBinaryExpression(node, lvl);
   basic_type *t1 = node->left()->type();
@@ -132,7 +157,7 @@ void gr8::type_checker::do_mod_node(cdk::mod_node * const node, int lvl) {  //CO
 }
 
 void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) { //COMPLETE
-  processBinaryExpression(node, lvl);
+  processAdditiveExpression(node, lvl);
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
@@ -154,7 +179,7 @@ void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) { //COM
 }
 
 void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COMPLETE
-  processBinaryExpression(node, lvl);
+  processAdditiveExpression(node, lvl);
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
@@ -162,15 +187,18 @@ void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COM
     MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (isInt(t1) && isInt(t2)) {
       MAKE_TYPE(type_deep_copy(t1));
-  } else if (isPointer(t1) && isPointer(t2) && t1->subtype()->name() == t2->subtype()->name()) { //assuming a type with name TYPE_POINTER always has a non-null subtype
-      if(t1->subtype()->name() == t2->subtype()->name())
+  }  else if (isPointer(t1) && isPointer(t2)) { //assuming a type with name TYPE_POINTER always has a non-null subtype
+      if(sameType(t1, t2))
         MAKE_TYPE(NEW_TYPE_INT); //difference of pointers is a number (integer)
       else throw std::string(
         "subtractive expression: cannot subtract fakes: '" + typeToString(t1) + "' and '" + typeToString(t1)) + "'";
-  } else if (isPointer(t1)) throw std::string(
-    "wrong type in right argument of subtractive expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
-  else throw std::string(
-    "wrong type in left argument of subtractive expression: expected '" + typeToString(t2) + "' but was '" + typeToString(t1) + "'");
+  } else if (isPointer(t1)) {
+      if(isInt(t2))
+        MAKE_TYPE(type_deep_copy(t1));
+      else throw std::string(
+        "wrong type in right argument of subtractive expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
+  } else if (isPointer(t2)) throw std::string(
+        "wrong type in left argument of subtractive expression: expected '" + typeToString(t2) + "' but was '" + typeToString(t1) + "'");
 }
 
 void gr8::type_checker::do_eq_node(cdk::eq_node * const node, int lvl) { //COMPLETE
@@ -189,8 +217,10 @@ void gr8::type_checker::processBinaryComparisonExpression(cdk::binary_expression
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
-  if(bothDoubleImplicitly(t1, t2) || (isInt(t1) && isInt(t2))) {
+  if(isInt(t1) && isInt(t2)) {
       MAKE_TYPE(NEW_TYPE_INT);
+  } else if (bothDoubleImplicitly(t1, t2)) {
+      MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (!isNumber(t1)) throw std::string(
       "wrong type in left argument of binary comparison expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
   else throw std::string(
@@ -406,7 +436,7 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
   if (_symtab.find_local(id))
     throw id + " redeclared";
 
-  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id, node->noQualifier(), node->isPublic(), node->isUse());
+  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(type_deep_copy(declared_type), id, node->noQualifier(), node->isPublic(), node->isUse());
   _symtab.insert(id, symbol);
 
   if (node->init()) {
@@ -421,12 +451,12 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
     if (!sameType(declared_type, t_init) && !(isDouble(declared_type)) && isInt(t_init)) throw std::string( //Error example: small i (initially 3 objects)
       "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(t_init) + "'");
     
-    if(!_parent->in_function())
+    /*if(!_parent->in_function())
       if((isInt(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())     ) ||
          (isDouble(t_init) && !dynamic_cast<cdk::double_node *>(node->init())  ) ||
          (isString(t_init) && !dynamic_cast<cdk::string_node *>(node->init())   ) ||
          (isPointer(t_init) && !dynamic_cast<gr8::null_node *>(node->init())    ) ) throw std::string(
-        "global variables should be initialized with literals");
+        "global variables should be initialized with literals");*/
   }
 
   _parent->set_new_symbol(symbol);
@@ -438,8 +468,6 @@ void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_n
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
-  else if(node->name() == "_main")
-    id = "ex_main";
 
   std::vector<basic_type*> param_types;
   for(cdk::basic_node *arg : node->args()->nodes()) {
@@ -451,7 +479,7 @@ void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_n
     param_types.push_back(type_deep_copy(arg_node->type()));
   }
 
-  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(declared_type, id,
+  std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(type_deep_copy(declared_type), id,
     node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, false, true);
   if (!_symtab.insert(id, symbol))
     throw id + " redeclared";
@@ -465,8 +493,6 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
-  else if(node->name() == "_main")
-    id = "ex_main";
 
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
   if(symbol) {
@@ -512,7 +538,7 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
       param_types.push_back(type_deep_copy(arg_node->type()));
     }
 
-    std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(defined_type, id,
+    std::shared_ptr<gr8::symbol> symbol = std::make_shared<gr8::symbol>(type_deep_copy(defined_type), id,
       node->noQualifier(), node->isPublic(), node->isUse(), true, param_types, true, true);
     _symtab.insert(id, symbol);
 
@@ -525,8 +551,6 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
-  else if(node->name() == "_main")
-    id = "ex_main";
 
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
   if(symbol) {

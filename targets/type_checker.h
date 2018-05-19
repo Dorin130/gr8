@@ -1,4 +1,4 @@
-// $Id: type_checker.h,v 1.1 2018/02/23 17:43:01 ist13500 Exp $ -*- c++ -*-
+// $Id: type_checker.h,v 1.2 2018/05/15 10:40:56 ist424752 Exp $ -*- c++ -*-
 #ifndef __GR8_SEMANTICS_TYPE_CHECKER_H__
 #define __GR8_SEMANTICS_TYPE_CHECKER_H__
 
@@ -33,7 +33,7 @@ namespace gr8 {
   protected:
     void processUnaryExpression(cdk::unary_expression_node * const node, int lvl);
     void processBinaryExpression(cdk::binary_expression_node * const node, int lvl);
-    //void processAdditiveEpression(cdk::binary_expression_node * const node, int lvl);
+    void processAdditiveExpression(cdk::binary_expression_node * const node, int lvl);
     void processMultiplicativeExpression(cdk::binary_expression_node * const node, int lvl);
     void processBinaryLogicExpression(cdk::binary_expression_node * const node, int lvl);
     void processBinaryComparisonExpression(cdk::binary_expression_node * const node, int lvl);

@@ -31,13 +31,13 @@ void gr8::postfix_writer::do_string_node(cdk::string_node * const node, int lvl)
   int lbl1;
 
   /* generate the string */
-  _pf.RODATA(); // strings are DATA readonly
+  switchSegment(RODATA); // strings are DATA readonly
   _pf.ALIGN(); // make sure we are aligned
   _pf.LABEL(mklbl(lbl1 = ++_lbl)); // give the string a name
   _pf.SSTRING(node->value()); // output string characters
 
   /* leave the address on the stack */
-  _pf.TEXT(); // return to the TEXT segment
+  switchSegment(TEXT); // return to the TEXT segment
   _pf.ADDR(mklbl(lbl1)); // the string to be printed
 }
 
@@ -106,15 +106,23 @@ void gr8::postfix_writer::do_add_node(cdk::add_node * const node, int lvl) {  //
 
 void gr8::postfix_writer::do_sub_node(cdk::sub_node * const node, int lvl) {  //COMPLETE (?)
   ASSERT_SAFE_EXPRESSIONS;
-  processBinaryExpressionImplicitConversion(node, lvl);
-  if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
-    _pf.DSUB();
-  else if(isPointer(node->left()->type())) {
+  if(isPointer(node->type())) { //pointer - int
+    node->left()->accept(this, lvl);
+    node->right()->accept(this, lvl);
+    _pf.INT(node->type()->subtype()->size());
+    _pf.MUL();
     _pf.SUB();
-    _pf.INT(node->left()->type()->subtype()->size());
-    _pf.DIV();
-  } else
-    _pf.SUB();
+  } else {
+    processBinaryExpressionImplicitConversion(node, lvl);
+    if(bothDoubleImplicitly(node->left()->type(), node->right()->type()))
+      _pf.DSUB();
+    else if(isPointer(node->left()->type())) {
+      _pf.SUB();
+      _pf.INT(node->left()->type()->subtype()->size());
+      _pf.DIV();
+    } else
+      _pf.SUB();
+  }
 }
 
 void gr8::postfix_writer::do_mod_node(cdk::mod_node * const node, int lvl) {  //COMPLETE (?)
@@ -245,7 +253,7 @@ void gr8::postfix_writer::do_program_node(gr8::program_node * const node, int lv
   // main function node.
 
   // generate the main function (RTS mandates that its name be "_main")
-  _pf.TEXT();
+  switchSegment(TEXT);
   _pf.ALIGN();
   _pf.GLOBAL("_main", _pf.FUNC());
   _pf.LABEL("_main");
@@ -473,7 +481,7 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
   }
 
   if(!in_function() && !node->init()) {             //module global uninitialized variable
-    _pf.BSS();
+    switchSegment(BSS);
     _pf.ALIGN();
 
     if(node->isPublic())
@@ -482,7 +490,6 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
     _pf.LABEL(node->name());
     _pf.SALLOC(node->type()->size());
 
-    _pf.TEXT(); //TODO: make sure segment switches are correct
   }
 
   if(!in_function() && node->init()) {             //module global initialized variable
@@ -490,40 +497,57 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
     mklbl(lbl1 = ++_lbl);
     basic_type *t_init = node->init()->type();
 
-    if(isString(t_init)) {                         //create referenceable string first
-      _pf.RODATA();
+    if((isInt(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())     ) ||
+       (isDouble(t_init) && !dynamic_cast<cdk::double_node *>(node->init())   ) ||
+       (isString(t_init) && !dynamic_cast<cdk::string_node *>(node->init())   ) ||
+       (isPointer(t_init) && !dynamic_cast<gr8::null_node *>(node->init())    ) ) {
+      switchSegment(BSS);
       _pf.ALIGN();
-      _pf.LABEL(mklbl(lbl1 = ++_lbl));
-      cdk::string_node *init_node = dynamic_cast<cdk::string_node*>(node->init());
-      _pf.SSTRING(init_node->value());
+
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
+
+      _pf.LABEL(node->name());
+      _pf.SALLOC(node->type()->size());
+
+      cdk::identifier_node *identifier = new cdk::identifier_node(node->lineno(), node->name());
+      _inits.push_back(new cdk::assignment_node(node->lineno(),identifier , node->init()));
+
+    } else {
+
+      if(isString(t_init)) {                         //create referenceable string first
+        switchSegment(RODATA);
+        _pf.ALIGN();
+        _pf.LABEL(mklbl(lbl1 = ++_lbl));
+        cdk::string_node *init_node = dynamic_cast<cdk::string_node*>(node->init());
+        _pf.SSTRING(init_node->value());
+      }
+
+      switchSegment(DATA);
+      _pf.ALIGN();
+      if(node->isPublic())
+        _pf.GLOBAL(node->name(), _pf.OBJ());
+      _pf.LABEL(node->name());
+
+
+      if(isString(t_init)) {
+        _pf.SADDR(mklbl(lbl1));                      //initialize with ReadOnly string address
+      } else if(isDouble(node->type()) && isInt(t_init)) {
+        cdk::integer_node *init_node = dynamic_cast<cdk::integer_node*>(node->init());
+        _pf.SDOUBLE(init_node->value());
+      }else if(isDouble(t_init)) {
+        cdk::double_node *init_node = dynamic_cast<cdk::double_node*>(node->init());
+        _pf.SDOUBLE(init_node->value());
+      } else if(isInt(t_init)) {
+        cdk::integer_node *init_node = dynamic_cast<cdk::integer_node*>(node->init());
+        _pf.SINT(init_node->value());
+      } else if(isPointer(t_init)) {
+        //gr8::null_node *init_node = dynamic_cast<gr8::null_node*>(node->init());
+        _pf.SINT(0); //should make null_node a literal_node<int> with value 0 (more elegant)
+      }
+
     }
-
-    _pf.DATA();
-    _pf.ALIGN();
-    if(node->isPublic())
-      _pf.GLOBAL(node->name(), _pf.OBJ());
-    _pf.LABEL(node->name());
-
-
-    if(isString(t_init)) {
-      _pf.SADDR(mklbl(lbl1));                      //initialize with ReadOnly string address
-    } else if(isDouble(node->type()) && isInt(t_init)) {
-      cdk::integer_node *init_node = dynamic_cast<cdk::integer_node*>(node->init());
-      _pf.SDOUBLE(init_node->value());
-    }else if(isDouble(t_init)) {
-      cdk::double_node *init_node = dynamic_cast<cdk::double_node*>(node->init());
-      _pf.SDOUBLE(init_node->value());
-    } else if(isInt(t_init)) {
-      cdk::integer_node *init_node = dynamic_cast<cdk::integer_node*>(node->init());
-      _pf.SINT(init_node->value());
-    } else if(isPointer(t_init)) {
-      //gr8::null_node *init_node = dynamic_cast<gr8::null_node*>(node->init());
-      _pf.SINT(0); //should make null_node a literal_node<int> with value 0 (more elegant)
-    }
-
-    _pf.TEXT(); //TODO: make sure segment switches are correct
   }
-
 }
 
 void gr8::postfix_writer::do_return_node(gr8::return_node *const node, int lvl) {
@@ -552,8 +576,6 @@ void gr8::postfix_writer::do_call_node(gr8::call_node *const node, int lvl) {
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
-  else if(node->name() == "_main")
-    id = "ex_main";
 
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
 
@@ -624,13 +646,11 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
   std::string id = node->name();
   if(id == "covfefe")
     id = "_main";
-  else if(node->name() == "_main")
-    id = "ex_main";
 
   gr8::stack_counter counter(_compiler);
   node->accept(&counter, 0); 
 
-  _pf.TEXT(); //what if previous segment was text? may need auxiliary function. Might automatically verify if already in TEXT
+  switchSegment(TEXT); //what if previous segment was text? may need auxiliary function. Might automatically verify if already in TEXT
   _pf.ALIGN();
 
   if(node->isPublic()) {
@@ -639,6 +659,10 @@ void gr8::postfix_writer::do_function_definition_node(gr8::function_definition_n
 
   _pf.LABEL(id);
   _pf.ENTER(counter.size());
+  if(id == "_main")
+    for (size_t i = 0; i < _inits.size(); i++) {
+      _inits.at(i)->accept(this, lvl);
+    }
 
   _symtab.push();
 
@@ -742,7 +766,7 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
     }
   } else {                                            //module global variable declaration
     if(!node->init()) {
-      _pf.BSS();
+      switchSegment(BSS);
       _pf.ALIGN();
 
       if(node->isPublic())
@@ -757,19 +781,19 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
       basic_type *t_init = node->init()->type();
 
       if(isString(t_init)) {
-        _pf.RODATA();
+        switchSegment(RODATA);
         _pf.ALIGN();
         _pf.LABEL(mklbl(lbl1 = ++_lbl));
         _pf.SSTRING(init_node->value())
 
-        _pf.DATA();
+        switchSegment(DATA);
         _pf.ALIGN();
         if(node->isPublic())
           _pf.GLOBAL(node->name(), _pf.OBJ());
         _pf.LABEL(node->name());
         _pf.SADDR(lbl1);
       } else {
-        _pf.DATA();
+        switchSegment(DATA);
         _pf.ALIGN();
         if(node->isPublic())
           _pf.GLOBAL(node->name(), _pf.OBJ());
@@ -780,7 +804,7 @@ void gr8::postfix_writer::do_var_declaration_node(gr8::var_declaration_node *con
           _pf.STINT(init_node->value())
       }
 
-      _pf.TEXT();
+      switchSegment(TEXT);
     }
   }
 }

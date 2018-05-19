@@ -1,13 +1,3 @@
-
-## CVS ###
-/CVS/*
-**/CVS/*
-.cvsignore
-*/.cvsignore
-
-### Git ###
-*.orig
-
 # Compiled Object files
 *.slo
 *.lo

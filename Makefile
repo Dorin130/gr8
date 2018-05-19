@@ -45,7 +45,7 @@ all: ast/all.h ast/visitor_decls.h $(COMPILER)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 %.tab.c:: %.y
-	$(YACC) -dtv -b $* $< 
+	$(YACC) -dtv -b $* $<
 
 %.tab.h:: %.y
 	$(YACC) -dtv -b $* $<
