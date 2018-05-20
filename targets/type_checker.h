@@ -117,7 +117,6 @@ namespace gr8 {
         std::string last = "";
         return typeToString(t, repeat, last);
       }
-
 */
   public:
       inline bool isUnspec(basic_type *type)    { return type->name() == basic_type::TYPE_UNSPEC;   }
@@ -129,22 +128,10 @@ namespace gr8 {
       inline bool isNumber(basic_type *type)    { return isInt(type) || isDouble(type); }
 
   public:
-      inline bool isPointerDisplacement(basic_type *t1, basic_type *t2) {
-          return ( (isInt(t1) && isPointer(t2)) ||
-                   (isPointer(t1) && isInt(t2)) );
-      }
-      inline bool isPointerDifference(basic_type *t1, basic_type *t2) {
-          return ( isPointer(t1) && isPointer(t2) );
-      }
       inline bool bothDoubleImplicitly(basic_type *t1, basic_type *t2) {
           return ( (isDouble(t1) && isDouble(t2)) ||
                    (isDouble(t1) && isInt(t2)   ) ||
                    (isInt(t1)    && isDouble(t2)) );
-      }
-      inline bool leftTypeCompatible(basic_type *t1, basic_type *t2) { //right type can be implicitly converted to left type
-          return ( (isDouble(t1) && isDouble(t2)) ||
-                   (isDouble(t1) && isInt(t2)   ) ||
-                   (isInt(t1)    && isInt(t2)   ) );
       }
 
       bool sameType(basic_type *t1, basic_type *t2) {

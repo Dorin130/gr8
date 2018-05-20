@@ -16,7 +16,7 @@
 
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lvl) { //Might be unnecessary (not an expression)
+void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lvl) { //irrelevant
   for (auto i : node->nodes())
       i->accept(this, lvl);
 }
@@ -28,17 +28,17 @@ void gr8::type_checker::do_sequence_node(cdk::sequence_node * const node, int lv
 
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_integer_node(cdk::integer_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_integer_node(cdk::integer_node * const node, int lvl) {
   ASSERT_UNSPEC;
   MAKE_TYPE(NEW_TYPE_INT);
 }
 
-void gr8::type_checker::do_string_node(cdk::string_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_string_node(cdk::string_node * const node, int lvl) {
   ASSERT_UNSPEC;
   MAKE_TYPE(NEW_TYPE_STRING);
 }
 
-void gr8::type_checker::do_double_node(cdk::double_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_double_node(cdk::double_node * const node, int lvl) {
   ASSERT_UNSPEC;
   MAKE_TYPE(NEW_TYPE_DOUBLE);
 }
@@ -59,13 +59,13 @@ void gr8::type_checker::processUnaryExpression(cdk::unary_expression_node * cons
     "wrong type in argument of unary expression: expected 'small' or 'huge' but was '" + typeToString(t) + "'");
 }
 
-void gr8::type_checker::do_neg_node(cdk::neg_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_neg_node(cdk::neg_node * const node, int lvl) {
   processUnaryExpression(node, lvl);
 }
-void gr8::type_checker::do_identity_node(gr8::identity_node *const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_identity_node(gr8::identity_node *const node, int lvl) {
   processUnaryExpression(node, lvl);
 }
-void gr8::type_checker::do_not_node(cdk::not_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_not_node(cdk::not_node * const node, int lvl) {
   ASSERT_UNSPEC;
 
   node->argument()->accept(this, lvl + 2);
@@ -129,34 +129,34 @@ void gr8::type_checker::processMultiplicativeExpression(cdk::binary_expression_n
   if(bothDoubleImplicitly(t1, t2)) {
     MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (isInt(t1) && isInt(t2)) {
-    MAKE_TYPE(type_deep_copy(t2));
+    MAKE_TYPE(NEW_TYPE_INT);
   } else if (!isNumber(t1)) throw std::string(
     "wrong type in left argument of multiplicative expression: expected 'small' or 'huge' but was '" + typeToString(t1) + "'");
   else throw std::string(
     "wrong type in right argument of multiplicative expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
 }
 
-void gr8::type_checker::do_mul_node(cdk::mul_node * const node, int lvl) {  //COMPLETE
+void gr8::type_checker::do_mul_node(cdk::mul_node * const node, int lvl) {
   processMultiplicativeExpression(node, lvl);
 }
-void gr8::type_checker::do_div_node(cdk::div_node * const node, int lvl) {  //COMPLETE
+void gr8::type_checker::do_div_node(cdk::div_node * const node, int lvl) {
   processMultiplicativeExpression(node, lvl);
 }
-void gr8::type_checker::do_mod_node(cdk::mod_node * const node, int lvl) {  //COMPLETE
+void gr8::type_checker::do_mod_node(cdk::mod_node * const node, int lvl) {
   processBinaryExpression(node, lvl);
 
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
 
   if (isInt(t1) && isInt(t2)) {
-    MAKE_TYPE(type_deep_copy(t1));
+    MAKE_TYPE(NEW_TYPE_INT);
   } else if (!isInt(t1)) throw std::string(
     "wrong type in left argument of modulus expression: expected 'small' but was '" + typeToString(t1) + "'");
   else throw std::string(
     "wrong type in right argument of modulus expression: expected 'small' but was '" + typeToString(t2) + "'");
 }
 
-void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) {
   processAdditiveExpression(node, lvl);
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
@@ -164,21 +164,21 @@ void gr8::type_checker::do_add_node(cdk::add_node * const node, int lvl) { //COM
   if(bothDoubleImplicitly(t1, t2)) {
     MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (isInt(t1) && isInt(t2)) {
-    MAKE_TYPE(type_deep_copy(t1));
+    MAKE_TYPE(NEW_TYPE_INT);
   } else if (isPointer(t1)) {
       if(isInt(t2))
         MAKE_TYPE(type_deep_copy(t1));
       else throw std::string(
-        "wrong type in right argument of additive expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2)) + "'";
+        "wrong type in right argument of additive expression: expected '" + typeToString(NEW_TYPE_INT) + "' but was '" + typeToString(t2)) + "'";
   } else if (isPointer(t2)) {
       if(isInt(t1))
         MAKE_TYPE(type_deep_copy(t2));
       else throw std::string(
-        "wrong type in left argument of additive expression: expected '" + typeToString(t2) + "' but was '" + typeToString(t1)) + "'";
+        "wrong type in left argument of additive expression: expected '" + typeToString(NEW_TYPE_INT) + "' but was '" + typeToString(t1)) + "'";
   }
 }
 
-void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) {
   processAdditiveExpression(node, lvl);
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
@@ -186,22 +186,22 @@ void gr8::type_checker::do_sub_node(cdk::sub_node * const node, int lvl) { //COM
   if(bothDoubleImplicitly(t1, t2)) {
     MAKE_TYPE(NEW_TYPE_DOUBLE);
   } else if (isInt(t1) && isInt(t2)) {
-      MAKE_TYPE(type_deep_copy(t1));
+      MAKE_TYPE(NEW_TYPE_INT);
   }  else if (isPointer(t1) && isPointer(t2)) { //assuming a type with name TYPE_POINTER always has a non-null subtype
       if(sameType(t1, t2))
-        MAKE_TYPE(NEW_TYPE_INT); //difference of pointers is a number (integer)
+        MAKE_TYPE(NEW_TYPE_INT);                //difference of pointers is a number (integer)
       else throw std::string(
         "subtractive expression: cannot subtract fakes: '" + typeToString(t1) + "' and '" + typeToString(t1)) + "'";
   } else if (isPointer(t1)) {
       if(isInt(t2))
         MAKE_TYPE(type_deep_copy(t1));
       else throw std::string(
-        "wrong type in right argument of subtractive expression: expected '" + typeToString(t1) + "' but was '" + typeToString(t2) + "'");
+        "wrong type in right argument of subtractive expression: expected '" + typeToString(NEW_TYPE_INT) + "' but was '" + typeToString(t2) + "'");
   } else if (isPointer(t2)) throw std::string(
         "wrong type in left argument of subtractive expression: expected '" + typeToString(t2) + "' but was '" + typeToString(t1) + "'");
 }
 
-void gr8::type_checker::do_eq_node(cdk::eq_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_eq_node(cdk::eq_node * const node, int lvl) {
   processBinaryExpression(node, lvl);
   basic_type *t1 = node->left()->type();
   basic_type *t2 = node->right()->type();
@@ -227,10 +227,10 @@ void gr8::type_checker::processBinaryComparisonExpression(cdk::binary_expression
       "wrong type in right argument of binary comparison expression: expected 'small' or 'huge' but was '" + typeToString(t2) + "'");
 }
 
-void gr8::type_checker::do_gt_node(cdk::gt_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_gt_node(cdk::gt_node * const node, int lvl) {
   processBinaryComparisonExpression(node, lvl);
 }
-void gr8::type_checker::do_lt_node(cdk::lt_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_lt_node(cdk::lt_node * const node, int lvl) {
   processBinaryComparisonExpression(node, lvl);
 }
 
@@ -247,10 +247,10 @@ void gr8::type_checker::processBinaryLogicExpression(cdk::binary_expression_node
       "wrong type in right argument of binary logic expression: expected 'small' but was '" + typeToString(t2) + "'");
 }
 
-void gr8::type_checker::do_and_node(cdk::and_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_and_node(cdk::and_node * const node, int lvl) {
   processBinaryLogicExpression(node, lvl);
 }
-void gr8::type_checker::do_or_node(cdk::or_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_or_node(cdk::or_node * const node, int lvl) {
   processBinaryLogicExpression(node, lvl);
 }
 
@@ -258,17 +258,14 @@ void gr8::type_checker::do_or_node(cdk::or_node * const node, int lvl) { //COMPL
 
 
 
-void gr8::type_checker::do_rvalue_node(cdk::rvalue_node * const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_rvalue_node(cdk::rvalue_node * const node, int lvl) {
   ASSERT_UNSPEC;
-  try {
-    node->lvalue()->accept(this, lvl);
-    node->type(node->lvalue()->type());
-  } catch (const std::string &id) {
-    throw "undeclared identifier '" + id + "'";
-  }
+
+  node->lvalue()->accept(this, lvl);
+  MAKE_TYPE(type_deep_copy(node->lvalue()->type()));
 }
 
-void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, int lvl) {
   ASSERT_UNSPEC;
 
   try {
@@ -291,12 +288,12 @@ void gr8::type_checker::do_assignment_node(cdk::assignment_node * const node, in
 
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_evaluation_node(gr8::evaluation_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_evaluation_node(gr8::evaluation_node * const node, int lvl) {
   node->argument()->accept(this, lvl + 2);
   type_unspec_converter(node->argument()->type());
 }
 
-void gr8::type_checker::do_print_node(gr8::print_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_print_node(gr8::print_node * const node, int lvl) {
   node->argument()->accept(this, lvl + 2);
 
   basic_type* t_arg = node->argument()->type();
@@ -318,38 +315,34 @@ void gr8::type_checker::do_if_else_node(gr8::if_else_node * const node, int lvl)
 
 void gr8::type_checker::do_sweeping_node(gr8::sweeping_node *const node, int lvl) {
   node->sweep()->accept(this, lvl + 4);
-  /*basic_type *t_sweep = node->sweep()->type();
-  if(!isNumber(t_sweep)) throw std::string(
-    "wrong type of lvalue argument of sweeping expression: expected lvalue of type 'small' or 'huge' but was '" + typeToString(t_sweep) + "'"); //ask if double can be in sweeping*/
   node->from()->accept(this, lvl + 4);
   node->to()->accept(this, lvl + 4);
   node->by()->accept(this, lvl + 4);
-  //need to verify if types make sense ?
 }
 
-
-//---------------------------------------------------------------------------
-// TODO
-//---------------------------------------------------------------------------
-
-void gr8::type_checker::do_stop_node(gr8::stop_node *const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_stop_node(gr8::stop_node *const node, int lvl) {
 }
-void gr8::type_checker::do_again_node(gr8::again_node *const node, int lvl) { //COMPLETE
+
+void gr8::type_checker::do_again_node(gr8::again_node *const node, int lvl) {
 }
-void gr8::type_checker::do_return_node(gr8::return_node *const node, int lvl) { //INCOMPLETE
+
+void gr8::type_checker::do_return_node(gr8::return_node *const node, int lvl) {
   basic_type *t_ret;
+
   if(node->ret() != nullptr) {
     node->ret()->accept(this, lvl);
     t_ret = node->ret()->type();
   } else {
-    t_ret = NEW_TYPE_VOID;
+    t_ret = NEW_TYPE_VOID;      //procedure
   }
+
   basic_type* f_type = _parent->get_current_function_type();
-  if (!sameType(f_type, t_ret) && !(isDouble(f_type)) && isInt(t_ret)) throw std::string( //Error example: small i (initially 3 objects)
+  if (!sameType(f_type, t_ret) && !(isDouble(f_type) && isInt(t_ret))) throw std::string( //Error example: small i (initially 3 objects)
       "type mismatch between return instruction and function return type: expected '" + typeToString(_parent->get_current_function_type()) +
       "' but was '" + typeToString(t_ret) + "'");
 }
-void gr8::type_checker::do_block_node(gr8::block_node *const node, int lvl) { //COMPLETE
+
+void gr8::type_checker::do_block_node(gr8::block_node *const node, int lvl) {
 }
 
 
@@ -357,20 +350,20 @@ void gr8::type_checker::do_block_node(gr8::block_node *const node, int lvl) { //
 // The lvalue bunch
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_read_node(gr8::read_node * const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_read_node(gr8::read_node * const node, int lvl) {
   ASSERT_UNSPEC
 
   MAKE_TYPE(new basic_type()); //type UNSPECIFIED
 }
 
-void gr8::type_checker::do_null_node(gr8::null_node *const node, int lvl) { //COMPLETE
+void gr8::type_checker::do_null_node(gr8::null_node *const node, int lvl) {
   ASSERT_UNSPEC
 
   MAKE_TYPE(NEW_TYPE_POINTER);
   node->type()->_subtype = new basic_type(); //type UNSPECIFIED
 }
 
-void gr8::type_checker::do_alloc_node(gr8::alloc_node *const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_alloc_node(gr8::alloc_node *const node, int lvl) {
   ASSERT_UNSPEC
 
   node->argument()->accept(this, lvl + 2);
@@ -383,7 +376,7 @@ void gr8::type_checker::do_alloc_node(gr8::alloc_node *const node, int lvl) { //
     "wrong type in argument of 'objects' expression: expected 'small' but was '" + typeToString(t) + "'");
 }
 
-void gr8::type_checker::do_cell_node(gr8::cell_node *const node, int lvl) { //COME BACK TO THIS LATER
+void gr8::type_checker::do_cell_node(gr8::cell_node *const node, int lvl) {
   ASSERT_UNSPEC
 
   node->cell()->accept(this, lvl + 2);
@@ -392,23 +385,25 @@ void gr8::type_checker::do_cell_node(gr8::cell_node *const node, int lvl) { //CO
   basic_type *t_base = node->baseptr()->type();
   basic_type *t_cell = node->cell()->type();
 
-  type_unspec_converter(t_base); //COME BACK TO THIS LATER
+  type_unspec_converter(t_base);
   type_unspec_converter(t_cell); //cast to int if UNSPECIFIED (e.g. cell input at p)
 
   if(!isPointer(t_base)) throw std::string(
     "wrong type in 'base' argument of cell expression: expected 'fake' but was '" + typeToString(t_base) + "'");
   if(!isInt(t_cell)) throw std::string(
-    "wrong type in 'cell' argument of cell expression: expected 'small' but was '" + typeToString(t_base) + "'"); //ask if double can be converted
+    "wrong type in 'cell' argument of cell expression: expected 'small' but was '" + typeToString(t_base) + "'");
+  if(isUnspecified(t_base->subtype())) throw std::string(
+    "'base' argument of cell expression cannot be 'null' or 'objects' expression");
 
-  node->type(type_deep_copy(t_base->subtype())); //type is UNSPECIFIED if t_base is null_node. Otherwise should be ok.
+  node->type(type_deep_copy(t_base->subtype()));
 }
 
-void gr8::type_checker::do_address_of_node(gr8::address_of_node *const node, int lvl) {  //CHECK FOR CORRECTNESS
+void gr8::type_checker::do_address_of_node(gr8::address_of_node *const node, int lvl) {
   ASSERT_UNSPEC
 
   node->lvalue()->accept(this, lvl + 2);
   basic_type *t = node->lvalue()->type();
-  type_unspec_converter(t); //e.g. 'cell 1 at null ?' -> 'cell 1 at null' is of type UNSPECIFIED
+  type_unspec_converter(t);
 
   MAKE_TYPE(NEW_TYPE_POINTER);
   node->type()->_subtype = type_deep_copy(t);
@@ -418,19 +413,19 @@ void gr8::type_checker::do_address_of_node(gr8::address_of_node *const node, int
 // The identifier bunch
 //---------------------------------------------------------------------------
 
-void gr8::type_checker::do_identifier_node(cdk::identifier_node * const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_identifier_node(cdk::identifier_node * const node, int lvl) {
   ASSERT_UNSPEC;
   const std::string &id = node->name();
   std::shared_ptr<gr8::symbol> symbol = _symtab.find(id);
 
   if (symbol != nullptr) {
-    node->type(symbol->type());
+    MAKE_TYPE(symbol->type());
   } else {
-    throw id;
+    throw "undeclared identifier '" + id + "'";
   }
 }
 
-void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const node, int lvl) {
   basic_type *declared_type = node->type();
   std::string id = node->name();
 
@@ -447,26 +442,15 @@ void gr8::type_checker::do_var_declaration_node(gr8::var_declaration_node *const
     node->init()->accept(this, lvl + 2);
     type_unspec_converter(declared_type, node->init()->type());
     basic_type* t_init = node->init()->type();
-/*
-    if (isDouble(declared_type) && isInt(t_init)) {
-      node->init()->type(NEW_TYPE_DOUBLE);
-    }
-*/
+
     if (!sameType(declared_type, t_init) && !(isDouble(declared_type)) && isInt(t_init)) throw std::string( //Error example: small i (initially 3 objects)
       "wrong type for initially expression: expected '" + typeToString(declared_type) + "' but was '" + typeToString(t_init) + "'");
-    
-    /*if(!_parent->in_function())
-      if((isInt(t_init) && !dynamic_cast<cdk::integer_node *>(node->init())     ) ||
-         (isDouble(t_init) && !dynamic_cast<cdk::double_node *>(node->init())  ) ||
-         (isString(t_init) && !dynamic_cast<cdk::string_node *>(node->init())   ) ||
-         (isPointer(t_init) && !dynamic_cast<gr8::null_node *>(node->init())    ) ) throw std::string(
-        "global variables should be initialized with literals");*/
   }
 
   _parent->set_new_symbol(symbol);
 }
 
-void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_function_declaration_node(gr8::function_declaration_node *const node, int lvl) {
   basic_type *declared_type = node->type();
 
   std::string id = node->name();
@@ -505,18 +489,18 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
       "attempt to redefine function/procedure '" + node->name() + "'");
 
     else if(!sameType(defined_type, symbol->type())) throw std::string(
-      "type mismatch between declaration and definition of '" + id + "' in return type: expected '" +
+      "type mismatch between declaration and definition of '" + id + "' return type: expected '" +
           typeToString(symbol->type()) + "' but was '" + typeToString(defined_type) + "'");
 
-    else {//check if types are consistent with previous declaration
+    else {  //check if types are consistent with previous declaration
       int f_args = node->args()->nodes().size();
       int d_args = symbol->param_types().size();
 
-      if(f_args > d_args) throw std::string( //too many params in definition
-          "extra parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " parameters.");
+      if(f_args > d_args) throw std::string(
+          "extra parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(d_args) + " parameters.");
 
-      if(f_args < d_args) throw std::string( //too little params in call
-          "missing parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " parameters.");
+      if(f_args < d_args) throw std::string(
+          "missing parameters in definition of '" + id + "'. Previous declaration expects " + std::to_string(d_args) + " parameters.");
 
       
       for (f_args--; f_args >= 0; --f_args) {
@@ -550,7 +534,7 @@ void gr8::type_checker::do_function_definition_node(gr8::function_definition_nod
   }
 }
 
-void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //COMPLETE (?)
+void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) {
   ASSERT_UNSPEC
   std::string id = node->name();
   if(id == "covfefe")
@@ -561,19 +545,15 @@ void gr8::type_checker::do_call_node(gr8::call_node *const node, int lvl) { //CO
 
     if(!symbol->isFunction()) throw std::string(
       "attempt to call '" + node->name() + "' when it is not a function or procedure");
-      /*
-    else if(!symbol->isDefined() && !symbol->isUse()) throw std::string( //functions can be defined later :(
-      "attempt to call undefined function/procedure '" + node->name() + "'");
-      */    //functions can be defined later --> need to add "used functions list"
     else {//check if types are consistent with previous declaration
       int i_call = node->args()->nodes().size();
       int f_args = symbol->param_types().size();
 
       if(i_call > f_args) throw std::string( //too many params in call
-          "extra arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
+          "extra arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(f_args) + " arguments.");
 
       if(i_call < f_args) throw std::string( //too little params in call
-          "missing arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(symbol->param_types().size()) + " arguments.");
+          "missing arguments in call for '" + id + "'. Previous declaration expects " + std::to_string(f_args) + " arguments.");
 
       
       for (i_call--; i_call >= 0; --i_call) {
